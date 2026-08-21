@@ -17,6 +17,8 @@
     setupCompareButton();
     setupCompareBack();
 
+    window._processFilesHandler = processFiles;
+
     await refreshHomeView();
     handleHashChange();
   }
@@ -37,7 +39,7 @@
   // ── Drop zone ──────────────────────────────────────────────────────────────
 
   function setupDropZone() {
-    const zone = document.getElementById('drop-zone');  // matches index.html id="drop-zone"
+    const zone = document.getElementById('drop-zone');
     if (!zone) return;
 
     zone.addEventListener('dragover', (e) => {
@@ -46,7 +48,6 @@
     });
 
     zone.addEventListener('dragleave', (e) => {
-      // Only remove if leaving the zone entirely (not entering a child)
       if (!zone.contains(e.relatedTarget)) {
         zone.classList.remove('drag-over');
       }
@@ -67,8 +68,8 @@
   // ── File picker ────────────────────────────────────────────────────────────
 
   function setupFilePicker() {
-    const input = document.getElementById('file-input');   // matches id="file-input"
-    const btn   = document.getElementById('btn-file-pick'); // matches id="btn-file-pick"
+    const input = document.getElementById('file-input');
+    const btn   = document.getElementById('btn-file-pick');
 
     if (btn && input) {
       btn.addEventListener('click', () => input.click());
@@ -78,28 +79,24 @@
       input.addEventListener('change', (e) => {
         const files = Array.from(e.target.files);
         if (files.length > 0) processFiles(files);
-        // Reset so the same file can be re-selected
         input.value = '';
       });
     }
   }
 
-  // ── Folder picker (Chrome / Chromium only) ─────────────────────────────────
+  // ── Folder picker (Chromium only) ──────────────────────────────────────────
 
   function setupFolderPicker() {
-    const btn       = document.getElementById('btn-folder-pick');   // matches id="btn-folder-pick"
-    const reloadBtn = document.getElementById('btn-reload-folder'); // matches id="btn-reload-folder"
+    const btn       = document.getElementById('btn-folder-pick');
+    const reloadBtn = document.getElementById('btn-reload-folder');
 
-    // If the API is absent, leave the buttons hidden (HTML default: class="hidden")
     if (!window.showDirectoryPicker) return;
 
-    // API present — show the button
     if (btn) {
       btn.classList.remove('hidden');
       btn.addEventListener('click', handleFolderPick);
     }
 
-    // Check for a persisted handle
     tryRestoreLastFolderHandle().then(handle => {
       if (handle && reloadBtn) {
         reloadBtn.classList.remove('hidden');
@@ -152,7 +149,6 @@
     }
   }
 
-  // Persist/restore directory handle using a dedicated "handles" store
   async function persistFolderHandle(handle) {
     try {
       await new Promise((resolve, reject) => {
@@ -202,7 +198,7 @@
   // ── Delete all ──────────────────────────────────────────────────────────────
 
   function setupDeleteAll() {
-    const btn = document.getElementById('btn-delete-all'); // matches id="btn-delete-all"
+    const btn = document.getElementById('btn-delete-all');
     if (!btn) return;
     btn.addEventListener('click', () => {
       window.UI.showDeleteAllModal(async () => {
@@ -218,10 +214,10 @@
     });
   }
 
-  // ── Back button ──────────────────────────────────────────────────────────────
+  // ── Back button & Navigation ────────────────────────────────────────────────
 
   function setupBackButton() {
-    const btn = document.getElementById('btn-back'); // matches id="btn-back"
+    const btn = document.getElementById('btn-back');
     if (btn) btn.addEventListener('click', () => { window.location.hash = '#home'; });
   }
 
@@ -241,7 +237,11 @@
 
   function setupCompareButton() {
     const btn = document.getElementById('btn-compare');
-    if (btn) btn.addEventListener('click', () => { window.location.hash = '#compare'; });
+    const homeBtn = document.getElementById('btn-home-compare');
+    const handleCompareClick = () => { window.location.hash = '#compare'; };
+
+    if (btn) btn.addEventListener('click', handleCompareClick);
+    if (homeBtn) homeBtn.addEventListener('click', handleCompareClick);
   }
 
   // ── Hash routing ─────────────────────────────────────────────────────────────
@@ -294,7 +294,6 @@
 
   async function showSessionView(sessionId) {
     try {
-      // Destroy previous charts to release canvas listeners
       if (currentChartGroup) {
         currentChartGroup.destroy();
         currentChartGroup = null;
@@ -315,31 +314,44 @@
         return;
       }
 
-      // Re-hydrate full session from stored meta + rows
       const session = { ...meta, rows: stored.rows };
       const rawText = stored.rawText || '';
 
-      // Re-run metrics and findings (rows are plain objects; metrics mutates session in place)
       window.Metrics.computeMetrics(session);
       const findings = window.Findings.runFindings(session);
       session.findings = findings;
 
       window.UI.showView('session');
 
-      // Session title in toolbar
       const titleEl = document.getElementById('session-title');
       if (titleEl) titleEl.textContent = meta.tuneName || meta.filename;
 
-      // Header stats
+      // Render Complete Pro Dashboard (Cockpit, Health, Metric Grid, Good/Better/Worst, AI Lab)
       const headerEl = document.getElementById('session-header');
-      if (headerEl) window.UI.renderSessionHeader(session, findings, headerEl);
+      if (headerEl) {
+        window.UI.renderSessionDashboard(session, findings, headerEl);
+      }
 
-      // Pull list
+      // WOT Pull List
       const pullListEl = document.getElementById('pull-list');
       if (pullListEl) {
         window.UI.renderPullList(session.pulls, pullListEl, (pull) => {
           if (currentChartGroup) currentChartGroup.zoomToPull(pull);
         });
+      }
+
+      // Parse summary in sidebar
+      const summaryEl = document.getElementById('parse-summary');
+      if (summaryEl) {
+        summaryEl.innerHTML = `
+          <h4 class="sidebar-subtitle">Log Telemetry Stats</h4>
+          <ul class="sidebar-meta-list">
+            <li><span>Rows Logged:</span> <strong>${session.rowsParsed || 0}</strong></li>
+            <li><span>Sampling:</span> <strong>${session.avgIntervalSec ? (1 / session.avgIntervalSec).toFixed(0) : '0'} Hz</strong></li>
+            <li><span>Columns:</span> <strong>${session.mapped ? session.mapped.length : 0} channels</strong></li>
+            <li><span>Duration:</span> <strong>${session.durationSec ? session.durationSec.toFixed(1) : '0'}s</strong></li>
+          </ul>
+        `;
       }
 
       // Charts
@@ -358,22 +370,6 @@
         }
       }
 
-      // Parse summary
-      const summaryEl = document.getElementById('parse-summary');
-      if (summaryEl) window.UI.renderParseSummary(session, summaryEl);
-
-      // Findings
-      const findingsEl = document.getElementById('findings-container');
-      if (findingsEl) window.UI.renderFindings(findings, findingsEl);
-
-      // Recommendations
-      const recsEl = document.getElementById('recommendations-container');
-      if (recsEl) window.UI.renderRecommendations(findings, recsEl);
-
-      // Export buttons
-      const exportEl = document.getElementById('export-container');
-      if (exportEl) window.UI.renderExportButtons(session, rawText, findings, exportEl);
-
     } catch (err) {
       console.error(err);
       window.UI.showToast('Error loading session: ' + err.message, 'error');
@@ -390,18 +386,38 @@
 
       const selA = document.getElementById('compare-select-a');
       const selB = document.getElementById('compare-select-b');
+      const container = document.getElementById('compare-container');
 
       if (!selA || !selB) return;
 
-      [selA, selB].forEach(sel => {
-        sel.innerHTML = sessions.map(s =>
-          `<option value="${s.id}">${escapeHtml(s.filename)} — ${escapeHtml(s.tuneName || 'Unknown')}</option>`
-        ).join('');
-      });
+      if (sessions.length < 2) {
+        if (container) {
+          container.innerHTML = `
+            <div class="empty-state-card">
+              <div class="empty-state-icon">⚖️</div>
+              <h3>Need at least 2 logs to compare</h3>
+              <p>Upload another FA24 datalog or load our sample logs to see the side-by-side telemetry battle grid and AI comparison verdict!</p>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      selA.innerHTML = sessions.map(s =>
+        `<option value="${s.id}">${escapeHtml(s.filename)} — ${escapeHtml(s.tuneName || 'Tune')}</option>`
+      ).join('');
+
+      selB.innerHTML = sessions.map(s =>
+        `<option value="${s.id}">${escapeHtml(s.filename)} — ${escapeHtml(s.tuneName || 'Tune')}</option>`
+      ).join('');
+
+      // Default selB to second option
+      if (sessions.length > 1) {
+        selB.selectedIndex = 1;
+      }
 
       const runBtn = document.getElementById('btn-run-compare');
       if (runBtn) {
-        // Remove previous listener by replacing element
         const newBtn = runBtn.cloneNode(true);
         runBtn.parentNode.replaceChild(newBtn, runBtn);
         newBtn.addEventListener('click', async () => {
@@ -414,6 +430,14 @@
           await runCompare(idA, idB, sessions);
         });
       }
+
+      // Auto-run comparison on load
+      const idA = selA.value;
+      const idB = selB.value;
+      if (idA && idB && idA !== idB) {
+        await runCompare(idA, idB, sessions);
+      }
+
     } catch (err) {
       console.error(err);
       window.UI.showToast('Error loading sessions for comparison.', 'error');
@@ -443,6 +467,8 @@
 
       const findingsA = window.Findings.runFindings(sessionA);
       const findingsB = window.Findings.runFindings(sessionB);
+      sessionA.findings = findingsA;
+      sessionB.findings = findingsB;
 
       const container = document.getElementById('compare-container');
       if (container) {
@@ -458,16 +484,14 @@
 
   async function processFiles(fileList) {
     const count = fileList.length;
-    window.UI.showToast(`Processing ${count} file${count > 1 ? 's' : ''}…`, 'info');
+    window.UI.showToast(`Processing ${count} datalog${count > 1 ? 's' : ''}…`, 'info');
 
     let lastSessionId = null;
 
     for (const file of fileList) {
       try {
-        // Read raw text first (parseFile also reads it internally but we need it for storage)
         const rawText = await file.text();
 
-        // Detect iCloud placeholder before handing to parser
         if (!rawText || rawText.trim() === '' || file.size === 0) {
           window.UI.showToast(
             `"${file.name}": This file may not be downloaded from iCloud. In Finder, right-click it and choose Download Now.`,
@@ -492,22 +516,20 @@
 
         const session = result.session;
 
-        // Enrich with metrics and findings
         window.Metrics.computeMetrics(session);
         const findings = window.Findings.runFindings(session);
         session.findings = findings;
 
-        // Persist to IndexedDB (raw text stored for export)
         await window.Storage.saveSession(session, rawText);
         lastSessionId = session.id;
 
         const uglyCount = findings.filter(f => f.severity === 'ugly').length;
         const badCount  = findings.filter(f => f.severity === 'bad').length;
         const note = uglyCount > 0
-          ? ` — ⚠ ${uglyCount} ugly finding${uglyCount > 1 ? 's' : ''}`
+          ? ` — ⚠️ ${uglyCount} ugly finding${uglyCount > 1 ? 's' : ''}`
           : badCount > 0
             ? ` — ${badCount} bad finding${badCount > 1 ? 's' : ''}`
-            : '';
+            : ' — ✨ Clean';
         window.UI.showToast(`Loaded "${file.name}"${note}`, uglyCount > 0 ? 'warning' : 'success');
 
       } catch (err) {
@@ -527,7 +549,12 @@
 
   function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
 })();

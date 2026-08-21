@@ -3,102 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';">
-  <title>AP Log Analyzer</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+  <title>AP Log Analyzer · Pro Telemetry & AI Diagnostic Dashboard</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  
+  <!-- HOME VIEW -->
   <div id="view-home">
     <header class="app-header">
-      <h1>AP Log Analyzer</h1>
-      <span class="app-subtitle">2022 WRX FA24 · Cobb AccessPort</span>
+      <div class="header-brand">
+        <span class="brand-logo">⚡</span>
+        <div>
+          <h1>AP Log Analyzer <span class="badge-pro">PRO TUNER</span></h1>
+          <span class="app-subtitle">2022+ Subaru WRX FA24 · Cobb AccessPort Telemetry & AI Diagnostics</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-home-compare" class="btn-secondary">⚖️ Compare Datalogs</button>
+      </div>
     </header>
     
-    <section class="upload-zone" id="drop-zone">
-      <div class="upload-icon">📂</div>
-      <p class="upload-main">Drop log files here or <button id="btn-file-pick">Choose Files</button></p>
-      <p class="upload-sub">Accepts .csv (tab-delimited AccessPort datalogs)</p>
-      <!-- Chrome only — shown/hidden by JS -->
-      <button id="btn-folder-pick" class="hidden">Choose Log Folder</button>
-      <button id="btn-reload-folder" class="hidden">Reload Last Folder</button>
-      <input type="file" id="file-input" multiple accept=".csv" class="visually-hidden">
-    </section>
-    
-    <section class="session-section">
-      <div class="section-header">
-        <h2>Sessions</h2>
-        <div class="session-actions">
-          <span id="storage-stats" class="storage-stats"></span>
-          <button id="btn-compare" class="btn-secondary">Compare Two Sessions</button>
-          <button id="btn-delete-all" class="btn-danger">Delete All</button>
+    <main class="home-main-container">
+      <section class="upload-zone" id="drop-zone">
+        <div class="upload-icon-pulse">📂</div>
+        <p class="upload-main">Drop Cobb AccessPort <code>.csv</code> logs here or <button id="btn-file-pick" class="btn-primary-inline">Browse Files</button></p>
+        <p class="upload-sub">Supports all FA24 Cobb AccessPort CSV logs (comma or tab delimited). 100% private, processed in browser.</p>
+        <div class="upload-actions">
+          <button id="btn-folder-pick" class="btn-secondary btn-sm hidden">Choose Log Folder</button>
+          <button id="btn-reload-folder" class="btn-secondary btn-sm hidden">Reload Folder</button>
         </div>
-      </div>
-      <div id="session-list">
-        <!-- Rendered by UI.renderSessionList or UI.renderEmptyState -->
-      </div>
-    </section>
+        <input type="file" id="file-input" multiple accept=".csv" class="visually-hidden">
+      </section>
+      
+      <section class="session-section">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2>Logged Sessions</h2>
+            <span id="storage-stats" class="storage-stats"></span>
+          </div>
+          <div class="session-actions">
+            <button id="btn-compare" class="btn-secondary">Compare Two Sessions</button>
+            <button id="btn-delete-all" class="btn-danger">Delete All</button>
+          </div>
+        </div>
+        <div id="session-list">
+          <!-- Rendered by UI.renderSessionList or UI.renderEmptyState -->
+        </div>
+      </section>
+    </main>
   </div>
 
+  <!-- SESSION TELEMETRY VIEW -->
   <div id="view-session" class="hidden">
-    <div class="view-toolbar">
-      <button id="btn-back" class="btn-back">← Sessions</button>
+    <header class="view-toolbar">
+      <button id="btn-back" class="btn-back">&larr; Back to Sessions</button>
       <div id="session-title" class="session-title"></div>
-    </div>
+      <div class="toolbar-actions">
+        <button id="btn-reset-zoom" class="btn-secondary btn-sm">🔍 Reset Zoom</button>
+      </div>
+    </header>
     
-    <div id="session-header" class="session-header-stats"></div>
+    <!-- Complete Dynamic Telemetry Dashboard (Cockpit, Health, Metric Grid, Good/Better/Worst, AI Lab) -->
+    <div id="session-header" class="session-telemetry-root"></div>
     
-    <div class="session-body">
-      <aside class="sidebar">
-        <div class="sidebar-section">
-          <h3>WOT Pulls</h3>
+    <div class="session-telemetry-body">
+      <aside class="telemetry-sidebar">
+        <div class="sidebar-card">
           <div id="pull-list"></div>
         </div>
-        <div class="sidebar-section">
-          <button id="btn-reset-zoom" class="btn-secondary btn-sm">Reset Zoom</button>
-        </div>
-        <div class="sidebar-section">
-          <h3>Parse Summary</h3>
+        <div class="sidebar-card">
           <div id="parse-summary"></div>
-        </div>
-        <div class="sidebar-section">
-          <h3>Export</h3>
-          <div id="export-container"></div>
         </div>
       </aside>
       
-      <main class="main-content">
+      <main class="telemetry-charts-pane">
+        <div class="charts-header">
+          <h3>📈 Interactive Multi-Graph Telemetry (Synchronized Scrubbing)</h3>
+          <p class="charts-hint">Hover to scrub all channels simultaneously · Drag horizontally to pan · Scroll wheel to zoom</p>
+        </div>
         <div id="charts-container" class="charts-container"></div>
-        
-        <section class="findings-section">
-          <h2>Findings</h2>
-          <div id="findings-container"></div>
-        </section>
-        
-        <section class="recommendations-section">
-          <h2>Recommendations</h2>
-          <div id="recommendations-container"></div>
-        </section>
       </main>
     </div>
   </div>
 
+  <!-- COMPARE VIEW -->
   <div id="view-compare" class="hidden">
-    <div class="view-toolbar">
-      <button id="btn-compare-back" class="btn-back">← Sessions</button>
-      <h2>Compare Sessions</h2>
-    </div>
-    <div id="compare-session-selector">
+    <header class="view-toolbar">
+      <button id="btn-compare-back" class="btn-back">&larr; Back to Sessions</button>
+      <div class="session-title">⚖️ Comparative Telemetry & AI Diagnostic Cockpit</div>
+    </header>
+
+    <div class="compare-selector-card">
       <div class="compare-select-row">
-        <label>Session A: <select id="compare-select-a"></select></label>
-        <label>Session B: <select id="compare-select-b"></select></label>
-        <button id="btn-run-compare" class="btn-primary">Compare</button>
+        <div class="select-group">
+          <label>Session A (Baseline):</label>
+          <select id="compare-select-a" class="custom-select"></select>
+        </div>
+        <div class="select-divider">&harr;</div>
+        <div class="select-group">
+          <label>Session B (Comparison):</label>
+          <select id="compare-select-b" class="custom-select"></select>
+        </div>
+        <button id="btn-run-compare" class="btn-primary">Compare Telemetry</button>
       </div>
     </div>
-    <div id="compare-container"></div>
+
+    <div id="compare-container" class="compare-content-container"></div>
   </div>
 
+  <!-- TOAST NOTIFICATIONS -->
   <div id="toast-container" aria-live="polite"></div>
 
+  <!-- MODAL -->
   <div id="modal-overlay" class="hidden">
     <div id="modal-box">
       <h3 id="modal-title"></h3>
@@ -113,10 +130,12 @@
     </div>
   </div>
 
+  <!-- SCRIPTS -->
   <script src="js/storage.js"></script>
   <script src="js/parser.js"></script>
   <script src="js/metrics.js"></script>
   <script src="js/findings.js"></script>
+  <script src="js/ai-analyzer.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>

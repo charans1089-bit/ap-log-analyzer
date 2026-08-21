@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0a0c14">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -173,6 +173,22 @@
     .tag-safe { color: var(--accent-emerald); font-weight: 700; }
     .tag-danger { color: var(--accent-rose); font-weight: 700; }
 
+    @media (max-width: 860px) {
+      .flow-steps {
+        flex-direction: column;
+        min-width: 0;
+        width: 100%;
+        gap: 8px;
+      }
+      .flow-box {
+        width: 100%;
+      }
+      .flow-arrow {
+        transform: rotate(90deg);
+        margin: 2px 0;
+      }
+    }
+
     @media (max-width: 640px) {
       .docs-nav-bar {
         padding: 12px 14px;
@@ -183,6 +199,8 @@
       }
       .docs-container {
         padding: 16px 12px 60px;
+        width: 100%;
+        max-width: 100%;
       }
       .docs-hero {
         padding: 24px 14px;
@@ -197,6 +215,8 @@
       .docs-section {
         padding: 18px 14px;
         margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
       }
       .docs-section h2 {
         font-size: 1.15rem;
@@ -206,6 +226,8 @@
       }
       .flowchart-wrap {
         padding: 14px;
+        width: 100%;
+        box-sizing: border-box;
       }
       .dict-table th, .dict-table td {
         padding: 8px 10px;

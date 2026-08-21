@@ -1,6 +1,7 @@
 'use strict';
 
 window.UI = (function () {
+  let sessionChatHistory = [];
 
   function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
@@ -29,6 +30,25 @@ window.UI = (function () {
     }
   }
 
+  function updateGeminiPills() {
+    const hasKey = window.GeminiService && window.GeminiService.hasApiKey();
+    const model = window.GeminiService ? window.GeminiService.getModel() : 'gemini-2.0-flash';
+    const shortModel = model.replace('gemini-', 'Gemini ');
+    const label = hasKey ? `✨ ${shortModel} Active` : '✨ Setup Gemini AI';
+
+    ['btn-gemini-settings-home', 'btn-gemini-settings-session', 'btn-gemini-settings-compare'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.textContent = label;
+        if (hasKey) {
+          el.classList.add('gemini-active');
+        } else {
+          el.classList.remove('gemini-active');
+        }
+      }
+    });
+  }
+
   function showView(viewName) {
     const views = ['home', 'session', 'compare'];
     views.forEach(v => {
@@ -41,6 +61,7 @@ window.UI = (function () {
         }
       }
     });
+    updateGeminiPills();
     window.scrollTo(0, 0);
   }
 
@@ -157,7 +178,7 @@ window.UI = (function () {
       <div class="empty-state-card">
         <div class="empty-state-icon">🏎️</div>
         <h3>No Datalogs Loaded Yet</h3>
-        <p>Drop your COBB AccessPort <code>.csv</code> log files above to generate an instant telemetry dashboard, AI safety report, and pull graphs.</p>
+        <p>Drop your COBB AccessPort <code>.csv</code> log files above to generate an instant telemetry dashboard, Gemini AI safety report, and pull graphs.</p>
         <div class="empty-actions" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
           <button id="btn-load-sample" class="btn-primary">⚡ Load Sample Datalog</button>
           <button id="btn-load-both-samples" class="btn-secondary">⚖️ Load 2 Demo Datalogs (Test Compare)</button>
@@ -210,6 +231,7 @@ window.UI = (function () {
    */
   function renderSessionDashboard(session, findings, container) {
     if (!container) return;
+    sessionChatHistory = [];
     const stats = session.stats || {};
     const pulls = session.pulls || [];
     const analysis = window.AIAnalyzer.analyzeSession(session);
@@ -436,26 +458,39 @@ window.UI = (function () {
 
       </div>
 
-      <!-- AI TUNER LAB & MCP ASSISTANT -->
+      <!-- AI TUNER LAB & GEMINI LIVE ASSISTANT -->
       <div class="ai-tuner-lab-card">
         <div class="ai-lab-header">
           <div class="ai-lab-title">
             <span class="ai-sparkle">✨</span>
             <div>
-              <h3>AI & MCP Tuner Intelligence Lab</h3>
-              <p>Automated telemetry synthesis, tuning recommendations, and natural language diagnostic assistant.</p>
+              <h3>Gemini Pro Tuner Intelligence Lab</h3>
+              <p>Live streaming Master Tuner calibrations, MCP prompt exports, and interactive telemetry chat.</p>
             </div>
           </div>
           <div class="ai-lab-actions">
-            <button id="btn-copy-mcp" class="btn-secondary btn-sm">📋 Copy MCP / AI Prompt</button>
-            <button id="btn-gen-ai-report" class="btn-primary btn-sm">⚡ Synthesize Full AI Report</button>
+            <button id="btn-copy-mcp" class="btn-secondary btn-sm">📋 Copy MCP Prompt</button>
+            <button id="btn-run-gemini-analysis" class="btn-primary btn-sm">⚡ Run Gemini Master Calibration</button>
           </div>
         </div>
 
         <div class="ai-lab-body">
+          
+          <!-- Streaming Gemini Live Report Container -->
+          <div id="gemini-live-report-box" class="gemini-live-report hidden">
+            <div class="gemini-live-header">
+              <span class="badge-gemini-streaming">● GEMINI LIVE CALIBRATION</span>
+              <span class="gemini-model-tag" id="gemini-active-model-tag">Gemini 2.0 Flash</span>
+            </div>
+            <div id="gemini-live-text" class="gemini-markdown-output">
+              <span class="typing-cursor">Analyzing datalog channels...</span>
+            </div>
+          </div>
+
+          <!-- Standard Executive Summary Box -->
           <div class="ai-tuner-summary-box" id="ai-report-output">
             <div class="ai-executive-summary">
-              <h4>📋 Executive Summary</h4>
+              <h4>📋 Rule-Engine Calibration Summary</h4>
               <p>${escapeHtml(analysis.summary)}</p>
             </div>
 
@@ -473,28 +508,35 @@ window.UI = (function () {
             </div>
           </div>
 
-          <!-- Interactive Q&A Console -->
+          <!-- Interactive Gemini Q&A Console -->
           <div class="ai-qa-section">
-            <h4>💬 Ask AI About This Log</h4>
+            <div class="ai-qa-header-row">
+              <h4>💬 Ask Gemini About This Datalog</h4>
+              <span class="qa-mode-tag">Real-Time LLM Telemetry Chat</span>
+            </div>
+            
             <div class="ai-chips-row">
-              <button class="ai-chip" data-q="Did I experience knock during the pulls?">💥 Knock & DAM Analysis</button>
-              <button class="ai-chip" data-q="How was my boost control and wastegate?">🚀 Boost & Wastegate</button>
-              <button class="ai-chip" data-q="Are my fuel trims and AFR safe?">⛽ Fueling & AFR</button>
-              <button class="ai-chip" data-q="Break down all WOT pulls in detail.">🏎️ WOT Pull Breakdown</button>
-              <button class="ai-chip" data-q="Are my intake air and oil temperatures safe?">🌡️ Temperatures</button>
+              <button class="ai-chip" data-q="Did I experience any knock during the pulls, and what caused it?">💥 Knock & DAM Analysis</button>
+              <button class="ai-chip" data-q="How is my boost control, spool rate, and wastegate tracking?">🚀 Boost & Wastegate</button>
+              <button class="ai-chip" data-q="Are my fuel trims, AFR, and direct injection rail pressure safe?">⛽ Fueling & AFR</button>
+              <button class="ai-chip" data-q="Give me a complete breakdown of every WOT pull in this log.">🏎️ WOT Pull Breakdown</button>
+              <button class="ai-chip" data-q="What specific map changes should I tell my tuner to make?">🔧 Tuner Map Adjustments</button>
             </div>
+
+            <div class="ai-chat-thread" id="ai-chat-thread">
+              <!-- Rendered chat history bubbles -->
+            </div>
+
             <div class="ai-input-row">
-              <input type="text" id="ai-question-input" placeholder="Ask anything (e.g. 'Why did boost peak at 22 psi?' or 'Is my HPFP keeping up?')...">
-              <button id="btn-ai-ask" class="btn-primary">Ask</button>
+              <input type="text" id="ai-question-input" placeholder="Ask Gemini anything about this datalog...">
+              <button id="btn-ai-ask" class="btn-primary">Ask Gemini</button>
             </div>
-            <div id="ai-answer-box" class="ai-answer-box hidden"></div>
           </div>
 
         </div>
       </div>
     `;
 
-    // Hook up AI buttons
     setupAILabEvents(session);
   }
 
@@ -511,42 +553,83 @@ window.UI = (function () {
       });
     }
 
-    const genReportBtn = document.getElementById('btn-gen-ai-report');
-    if (genReportBtn) {
-      genReportBtn.addEventListener('click', () => {
-        const out = document.getElementById('ai-report-output');
-        if (out) {
-          out.classList.add('pulse-glow');
-          setTimeout(() => out.classList.remove('pulse-glow'), 1000);
-          showToast('AI Tuner report refreshed with full telemetry synthesis!', 'success');
+    const runGeminiBtn = document.getElementById('btn-run-gemini-analysis');
+    const liveBox = document.getElementById('gemini-live-report-box');
+    const liveText = document.getElementById('gemini-live-text');
+    const modelTag = document.getElementById('gemini-active-model-tag');
+
+    if (runGeminiBtn && liveBox && liveText) {
+      runGeminiBtn.addEventListener('click', () => {
+        if (!window.GeminiService.hasApiKey()) {
+          showToast('Please enter your Gemini API key first.', 'warning');
+          showGeminiModal();
+          return;
         }
+
+        liveBox.classList.remove('hidden');
+        if (modelTag) modelTag.textContent = window.GeminiService.getModel();
+        liveText.innerHTML = '<span class="typing-cursor">Connecting to Google Gemini and calibrating telemetry...</span>';
+        liveBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        window.GeminiService.generateSessionAnalysis(
+          session,
+          (chunk, fullText) => {
+            liveText.innerHTML = formatMarkdownToHtml(fullText);
+          },
+          (fullText) => {
+            liveText.innerHTML = formatMarkdownToHtml(fullText);
+            showToast('Gemini Master Calibration completed!', 'success');
+          },
+          (err) => {
+            liveText.innerHTML = `<div class="text-danger">⚠️ Gemini Analysis Error: ${escapeHtml(err.message)}</div>`;
+            showToast(err.message, 'error');
+          }
+        );
       });
     }
 
     const askInput = document.getElementById('ai-question-input');
     const askBtn = document.getElementById('btn-ai-ask');
-    const answerBox = document.getElementById('ai-answer-box');
+    const chatThread = document.getElementById('ai-chat-thread');
 
     const handleAsk = (query) => {
       if (!query || query.trim() === '') return;
-      const answer = window.AIAnalyzer.answerQuestion(session, query);
-      if (answerBox) {
-        answerBox.classList.remove('hidden');
-        answerBox.innerHTML = `
-          <div class="ai-answer-bubble">
-            <div class="ai-answer-header">
-              <span class="ai-icon">🤖</span> <strong>Tuner AI Diagnostics</strong>
-            </div>
-            <div class="ai-answer-content">${escapeHtml(answer).replace(/\n/g, '<br>')}</div>
-          </div>
-        `;
+      const cleanQ = query.trim();
+      if (askInput) askInput.value = '';
+
+      // Append user bubble
+      appendChatBubble(chatThread, 'user', cleanQ);
+
+      // Check if Gemini is configured
+      if (window.GeminiService.hasApiKey()) {
+        const modelBubble = appendChatBubble(chatThread, 'gemini', 'Thinking...');
+        const contentEl = modelBubble.querySelector('.chat-bubble-content');
+
+        window.GeminiService.askGeminiChat(
+          session,
+          cleanQ,
+          sessionChatHistory,
+          (chunk, fullText) => {
+            if (contentEl) contentEl.innerHTML = formatMarkdownToHtml(fullText);
+          },
+          (fullText) => {
+            if (contentEl) contentEl.innerHTML = formatMarkdownToHtml(fullText);
+            sessionChatHistory.push({ role: 'user', text: cleanQ });
+            sessionChatHistory.push({ role: 'model', text: fullText });
+          },
+          (err) => {
+            if (contentEl) contentEl.innerHTML = `<span class="text-danger">⚠️ ${escapeHtml(err.message)}</span>`;
+          }
+        );
+      } else {
+        // Fallback to rule engine
+        const answer = window.AIAnalyzer.answerQuestion(session, cleanQ);
+        appendChatBubble(chatThread, 'gemini', answer);
       }
     };
 
     if (askBtn && askInput) {
-      askBtn.addEventListener('click', () => {
-        handleAsk(askInput.value);
-      });
+      askBtn.addEventListener('click', () => handleAsk(askInput.value));
       askInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleAsk(askInput.value);
       });
@@ -556,10 +639,42 @@ window.UI = (function () {
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
         const q = chip.getAttribute('data-q');
-        if (askInput) askInput.value = q;
         handleAsk(q);
       });
     });
+  }
+
+  function appendChatBubble(container, role, text) {
+    if (!container) return null;
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble chat-bubble-${role}`;
+    const icon = role === 'user' ? '👤' : '✨';
+    const author = role === 'user' ? 'You' : 'Gemini Calibrator';
+
+    bubble.innerHTML = `
+      <div class="chat-bubble-header">
+        <span class="chat-icon">${icon}</span> <strong>${author}</strong>
+      </div>
+      <div class="chat-bubble-content">${formatMarkdownToHtml(text)}</div>
+    `;
+
+    container.appendChild(bubble);
+    bubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return bubble;
+  }
+
+  function formatMarkdownToHtml(md) {
+    if (!md) return '';
+    return escapeHtml(md)
+      .replace(/^### (.*$)/gim, '<h4>$1</h4>')
+      .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^# (.*$)/gim, '<h2>$1</h2>')
+      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+      .replace(/`([^`]+)`/gim, '<code>$1</code>')
+      .replace(/^\- (.*$)/gim, '<li>$1</li>')
+      .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
+      .replace(/\n/gim, '<br>');
   }
 
   function renderPullList(pulls, container, onPullClick) {
@@ -601,7 +716,7 @@ window.UI = (function () {
   }
 
   /**
-   * Renders the brand new, awesome Side-by-Side Compare Sessions Dashboard!
+   * Renders the Side-by-Side Compare Sessions Dashboard with Gemini integration
    */
   function renderCompare(session1, session2, findings1, findings2, container) {
     if (!container) return;
@@ -614,8 +729,21 @@ window.UI = (function () {
       <div class="compare-verdict-banner">
         <div class="verdict-icon">⚖️</div>
         <div class="verdict-content">
-          <h3>Comparative AI Tuner Verdict</h3>
+          <h3>Comparative Calibrator Verdict</h3>
           <p>${escapeHtml(comparison.verdict)}</p>
+        </div>
+        <div class="verdict-action">
+          <button id="btn-gemini-compare-review" class="btn-primary btn-sm">✨ Gemini Dual-Log Review</button>
+        </div>
+      </div>
+
+      <!-- STREAMING GEMINI DUAL-LOG REVIEW BOX -->
+      <div id="gemini-compare-box" class="gemini-live-report hidden" style="margin-bottom: 24px;">
+        <div class="gemini-live-header">
+          <span class="badge-gemini-streaming">● GEMINI COMPARATIVE LOG REVIEW</span>
+        </div>
+        <div id="gemini-compare-text" class="gemini-markdown-output">
+          <span class="typing-cursor">Comparing telemetry channels across both sessions...</span>
         </div>
       </div>
 
@@ -715,6 +843,120 @@ window.UI = (function () {
         </div>
       </div>
     `;
+
+    // Hook up Gemini compare review
+    const geminiCompareBtn = document.getElementById('btn-gemini-compare-review');
+    const compBox = document.getElementById('gemini-compare-box');
+    const compText = document.getElementById('gemini-compare-text');
+
+    if (geminiCompareBtn && compBox && compText) {
+      geminiCompareBtn.addEventListener('click', () => {
+        if (!window.GeminiService.hasApiKey()) {
+          showToast('Please configure your Gemini API key first.', 'warning');
+          showGeminiModal();
+          return;
+        }
+
+        compBox.classList.remove('hidden');
+        compText.innerHTML = '<span class="typing-cursor">Gemini is analyzing calibration differences...</span>';
+        compBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        window.GeminiService.compareSessionsAnalysis(
+          session1,
+          session2,
+          (chunk, fullText) => {
+            compText.innerHTML = formatMarkdownToHtml(fullText);
+          },
+          (fullText) => {
+            compText.innerHTML = formatMarkdownToHtml(fullText);
+            showToast('Gemini Comparative Log Review completed!', 'success');
+          },
+          (err) => {
+            compText.innerHTML = `<span class="text-danger">⚠️ Error: ${escapeHtml(err.message)}</span>`;
+            showToast(err.message, 'error');
+          }
+        );
+      });
+    }
+  }
+
+  // === GEMINI MODAL MANAGEMENT ===
+  function showGeminiModal() {
+    const modal = document.getElementById('modal-gemini');
+    const input = document.getElementById('input-gemini-key');
+    const select = document.getElementById('select-gemini-model');
+    const statusBanner = document.getElementById('gemini-key-status');
+
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    if (input) input.value = window.GeminiService.getApiKey();
+    if (select) select.value = window.GeminiService.getModel();
+    if (statusBanner) statusBanner.classList.add('hidden');
+  }
+
+  function hideGeminiModal() {
+    const modal = document.getElementById('modal-gemini');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function setupGeminiModal() {
+    ['btn-gemini-settings-home', 'btn-gemini-settings-session', 'btn-gemini-settings-compare'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', showGeminiModal);
+    });
+
+    const closeBtn = document.getElementById('btn-close-gemini-modal');
+    if (closeBtn) closeBtn.addEventListener('click', hideGeminiModal);
+
+    const toggleVisBtn = document.getElementById('btn-toggle-key-visibility');
+    const inputKey = document.getElementById('input-gemini-key');
+    if (toggleVisBtn && inputKey) {
+      toggleVisBtn.addEventListener('click', () => {
+        inputKey.type = inputKey.type === 'password' ? 'text' : 'password';
+      });
+    }
+
+    const saveBtn = document.getElementById('btn-save-gemini-key');
+    const modelSelect = document.getElementById('select-gemini-model');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const key = inputKey ? inputKey.value : '';
+        const model = modelSelect ? modelSelect.value : 'gemini-2.0-flash';
+        window.GeminiService.setApiKey(key);
+        window.GeminiService.setModel(model);
+        updateGeminiPills();
+        hideGeminiModal();
+        showToast('Gemini settings saved successfully!', 'success');
+      });
+    }
+
+    const testBtn = document.getElementById('btn-test-gemini-key');
+    const statusBanner = document.getElementById('gemini-key-status');
+    if (testBtn && inputKey && statusBanner) {
+      testBtn.addEventListener('click', async () => {
+        const key = inputKey.value.trim();
+        if (!key) {
+          statusBanner.className = 'status-banner banner-error';
+          statusBanner.textContent = 'Please enter an API key first.';
+          statusBanner.classList.remove('hidden');
+          return;
+        }
+
+        statusBanner.className = 'status-banner banner-info';
+        statusBanner.textContent = 'Testing connection to Google Gemini API...';
+        statusBanner.classList.remove('hidden');
+
+        try {
+          await window.GeminiService.testApiKey(key);
+          statusBanner.className = 'status-banner banner-success';
+          statusBanner.textContent = '✅ Connection successful! Valid Gemini API key.';
+        } catch (err) {
+          statusBanner.className = 'status-banner banner-error';
+          statusBanner.textContent = `❌ Connection failed: ${err.message}`;
+        }
+      });
+    }
   }
 
   function showDeleteAllModal(onConfirm) {
@@ -761,6 +1003,9 @@ window.UI = (function () {
   return {
     showToast,
     showView,
+    updateGeminiPills,
+    showGeminiModal,
+    setupGeminiModal,
     renderStorageStats,
     renderSessionList,
     renderEmptyState,

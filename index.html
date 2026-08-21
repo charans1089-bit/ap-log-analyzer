@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
-  <title>AP Log Analyzer · Pro Telemetry & AI Diagnostic Dashboard</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com;">
+  <title>AP Log Analyzer · Pro Telemetry & Gemini AI Diagnostic Dashboard</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -16,10 +16,11 @@
         <span class="brand-logo">⚡</span>
         <div>
           <h1>AP Log Analyzer <span class="badge-pro">PRO TUNER</span></h1>
-          <span class="app-subtitle">2022+ Subaru WRX FA24 · Cobb AccessPort Telemetry & AI Diagnostics</span>
+          <span class="app-subtitle">2022+ Subaru WRX FA24 · Cobb AccessPort Telemetry & Gemini AI Diagnostics</span>
         </div>
       </div>
       <div class="header-actions">
+        <button id="btn-gemini-settings-home" class="btn-gemini-pill">✨ Gemini AI</button>
         <button id="btn-home-compare" class="btn-secondary">⚖️ Compare Datalogs</button>
       </div>
     </header>
@@ -57,9 +58,12 @@
   <!-- SESSION TELEMETRY VIEW -->
   <div id="view-session" class="hidden">
     <header class="view-toolbar">
-      <button id="btn-back" class="btn-back">&larr; Back to Sessions</button>
-      <div id="session-title" class="session-title"></div>
+      <div class="toolbar-left">
+        <button id="btn-back" class="btn-back">&larr; Back to Sessions</button>
+        <div id="session-title" class="session-title"></div>
+      </div>
       <div class="toolbar-actions">
+        <button id="btn-gemini-settings-session" class="btn-gemini-pill">✨ Gemini AI</button>
         <button id="btn-reset-zoom" class="btn-secondary btn-sm">🔍 Reset Zoom</button>
       </div>
     </header>
@@ -90,8 +94,13 @@
   <!-- COMPARE VIEW -->
   <div id="view-compare" class="hidden">
     <header class="view-toolbar">
-      <button id="btn-compare-back" class="btn-back">&larr; Back to Sessions</button>
-      <div class="session-title">⚖️ Comparative Telemetry & AI Diagnostic Cockpit</div>
+      <div class="toolbar-left">
+        <button id="btn-compare-back" class="btn-back">&larr; Back to Sessions</button>
+        <div class="session-title">⚖️ Comparative Telemetry & Gemini AI Diagnostic Cockpit</div>
+      </div>
+      <div class="toolbar-actions">
+        <button id="btn-gemini-settings-compare" class="btn-gemini-pill">✨ Gemini AI</button>
+      </div>
     </header>
 
     <div class="compare-selector-card">
@@ -112,17 +121,54 @@
     <div id="compare-container" class="compare-content-container"></div>
   </div>
 
+  <!-- GEMINI SETTINGS MODAL -->
+  <div id="modal-gemini" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-card-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon">✨</span>
+          <h3>Google Gemini AI Settings</h3>
+        </div>
+        <button id="btn-close-gemini-modal" class="btn-modal-close">&times;</button>
+      </div>
+      <div class="modal-card-body">
+        <p class="modal-desc">Connect Google Gemini to unlock live streaming Master Tuner calibrations and interactive chat about your datalogs. Get a free API key at <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+        
+        <div class="form-field">
+          <label for="input-gemini-key">Gemini API Key</label>
+          <div class="input-key-row">
+            <input type="password" id="input-gemini-key" placeholder="AIzaSy..." autocomplete="off">
+            <button id="btn-toggle-key-visibility" class="btn-secondary btn-sm" type="button">👁️</button>
+          </div>
+          <small class="field-hint">Your API key is saved strictly in your browser's local storage.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="select-gemini-model">Gemini Model</label>
+          <select id="select-gemini-model" class="custom-select">
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fastest & Recommended)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deepest Analysis)</option>
+          </select>
+        </div>
+
+        <div id="gemini-key-status" class="status-banner hidden"></div>
+      </div>
+      <div class="modal-card-footer">
+        <button id="btn-test-gemini-key" class="btn-secondary">Test Connection</button>
+        <button id="btn-save-gemini-key" class="btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATIONS -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <!-- MODAL -->
+  <!-- CONFIRM MODAL -->
   <div id="modal-overlay" class="hidden">
     <div id="modal-box">
       <h3 id="modal-title"></h3>
       <p id="modal-body"></p>
-      <div id="modal-input-row" class="hidden">
-        <input type="text" id="modal-input" placeholder="">
-      </div>
       <div class="modal-actions">
         <button id="modal-cancel" class="btn-secondary">Cancel</button>
         <button id="modal-confirm" class="btn-danger">Confirm</button>
@@ -136,6 +182,7 @@
   <script src="js/metrics.js"></script>
   <script src="js/findings.js"></script>
   <script src="js/ai-analyzer.js"></script>
+  <script src="js/gemini.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>

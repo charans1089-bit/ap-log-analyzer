@@ -17,6 +17,9 @@
     setupCompareButton();
     setupCompareBack();
 
+    window.UI.setupGeminiModal();
+    window.UI.updateGeminiPills();
+
     window._processFilesHandler = processFiles;
 
     await refreshHomeView();

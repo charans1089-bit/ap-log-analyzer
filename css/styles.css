@@ -1458,6 +1458,288 @@ button {
 #modal-body { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+/* === GEMINI AI STYLES === */
+.btn-gemini-pill {
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.15), rgba(79, 172, 254, 0.15));
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  color: #fff;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  border-radius: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-gemini-pill:hover {
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.3), rgba(79, 172, 254, 0.3));
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 15px rgba(192, 132, 252, 0.3);
+}
+
+.btn-gemini-pill.gemini-active {
+  border-color: var(--accent-emerald);
+  background: linear-gradient(135deg, rgba(0, 245, 160, 0.15), rgba(0, 242, 254, 0.15));
+  color: var(--accent-emerald);
+}
+
+/* GEMINI LIVE REPORT STREAMING */
+.gemini-live-report {
+  background: linear-gradient(180deg, #131728 0%, #0d101c 100%);
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 30px rgba(192, 132, 252, 0.15);
+  animation: slideIn 0.3s ease;
+}
+
+.gemini-live-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.badge-gemini-streaming {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent-purple);
+  letter-spacing: 0.05em;
+}
+
+.gemini-model-tag {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.gemini-markdown-output {
+  color: var(--text-main);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.gemini-markdown-output h2, .gemini-markdown-output h3, .gemini-markdown-output h4 {
+  color: #fff;
+  margin: 14px 0 6px;
+}
+
+.gemini-markdown-output ul {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.gemini-markdown-output code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-cyan);
+  font-size: 0.82rem;
+}
+
+.typing-cursor {
+  color: var(--accent-purple);
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* CHAT THREAD */
+.ai-qa-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.qa-mode-tag {
+  font-size: 0.7rem;
+  color: var(--accent-purple);
+  font-weight: 700;
+}
+
+.ai-chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 14px;
+  max-height: 380px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-bubble {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  animation: slideIn 0.2s ease;
+}
+
+.chat-bubble-user {
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  align-self: flex-end;
+  max-width: 85%;
+}
+
+.chat-bubble-gemini {
+  background: rgba(192, 132, 252, 0.08);
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  align-self: flex-start;
+  max-width: 90%;
+}
+
+.chat-bubble-header {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* GEMINI SETTINGS MODAL */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: slideIn 0.25s ease;
+}
+
+.modal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title-wrap h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.modal-icon { font-size: 1.4rem; }
+
+.btn-modal-close {
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.btn-modal-close:hover { color: #fff; }
+
+.modal-card-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.modal-desc a {
+  color: var(--accent-cyan);
+  text-decoration: underline;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.input-key-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-key-row input {
+  flex-grow: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.input-key-row input:focus {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.25);
+}
+
+.field-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.status-banner {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.banner-info    { background: rgba(0, 242, 254, 0.1); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); }
+.banner-success { background: rgba(0, 245, 160, 0.1); border: 1px solid var(--accent-emerald); color: var(--accent-emerald); }
+.banner-error   { background: rgba(255, 75, 114, 0.1); border: 1px solid var(--accent-rose); color: var(--accent-rose); }
+
+.modal-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border);
+}
+
 /* UTILS */
 .hidden { display: none !important; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }

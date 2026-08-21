@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+**/.DS_Store
+*.DS_Store
+
+# iCloud placeholders
+*.icloud
+
+# CSV log files — real datalogs must never be committed
+*.csv
+
+# Exception: synthetic sample is intentional and safe
+!docs/sample/sample_log.csv
+

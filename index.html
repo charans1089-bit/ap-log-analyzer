@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';">
+  <title>AP Log Analyzer</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="view-home">
+    <header class="app-header">
+      <h1>AP Log Analyzer</h1>
+      <span class="app-subtitle">2022 WRX FA24 · Cobb AccessPort</span>
+    </header>
+    
+    <section class="upload-zone" id="drop-zone">
+      <div class="upload-icon">📂</div>
+      <p class="upload-main">Drop log files here or <button id="btn-file-pick">Choose Files</button></p>
+      <p class="upload-sub">Accepts .csv (tab-delimited AccessPort datalogs)</p>
+      <!-- Chrome only — shown/hidden by JS -->
+      <button id="btn-folder-pick" class="hidden">Choose Log Folder</button>
+      <button id="btn-reload-folder" class="hidden">Reload Last Folder</button>
+      <input type="file" id="file-input" multiple accept=".csv" class="visually-hidden">
+    </section>
+    
+    <section class="session-section">
+      <div class="section-header">
+        <h2>Sessions</h2>
+        <div class="session-actions">
+          <span id="storage-stats" class="storage-stats"></span>
+          <button id="btn-compare" class="btn-secondary">Compare Two Sessions</button>
+          <button id="btn-delete-all" class="btn-danger">Delete All</button>
+        </div>
+      </div>
+      <div id="session-list">
+        <!-- Rendered by UI.renderSessionList or UI.renderEmptyState -->
+      </div>
+    </section>
+  </div>
+
+  <div id="view-session" class="hidden">
+    <div class="view-toolbar">
+      <button id="btn-back" class="btn-back">← Sessions</button>
+      <div id="session-title" class="session-title"></div>
+    </div>
+    
+    <div id="session-header" class="session-header-stats"></div>
+    
+    <div class="session-body">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <h3>WOT Pulls</h3>
+          <div id="pull-list"></div>
+        </div>
+        <div class="sidebar-section">
+          <button id="btn-reset-zoom" class="btn-secondary btn-sm">Reset Zoom</button>
+        </div>
+        <div class="sidebar-section">
+          <h3>Parse Summary</h3>
+          <div id="parse-summary"></div>
+        </div>
+        <div class="sidebar-section">
+          <h3>Export</h3>
+          <div id="export-container"></div>
+        </div>
+      </aside>
+      
+      <main class="main-content">
+        <div id="charts-container" class="charts-container"></div>
+        
+        <section class="findings-section">
+          <h2>Findings</h2>
+          <div id="findings-container"></div>
+        </section>
+        
+        <section class="recommendations-section">
+          <h2>Recommendations</h2>
+          <div id="recommendations-container"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="view-compare" class="hidden">
+    <div class="view-toolbar">
+      <button id="btn-compare-back" class="btn-back">← Sessions</button>
+      <h2>Compare Sessions</h2>
+    </div>
+    <div id="compare-session-selector">
+      <div class="compare-select-row">
+        <label>Session A: <select id="compare-select-a"></select></label>
+        <label>Session B: <select id="compare-select-b"></select></label>
+        <button id="btn-run-compare" class="btn-primary">Compare</button>
+      </div>
+    </div>
+    <div id="compare-container"></div>
+  </div>
+
+  <div id="toast-container" aria-live="polite"></div>
+
+  <div id="modal-overlay" class="hidden">
+    <div id="modal-box">
+      <h3 id="modal-title"></h3>
+      <p id="modal-body"></p>
+      <div id="modal-input-row" class="hidden">
+        <input type="text" id="modal-input" placeholder="">
+      </div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn-secondary">Cancel</button>
+        <button id="modal-confirm" class="btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/metrics.js"></script>
+  <script src="js/findings.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -49,6 +49,16 @@ class SharedViewport {
     this.setRange(t - leftSpan * factor, t + rightSpan * factor);
   }
 
+  zoomIn(factor = 0.75) {
+    const center = this._cursorTime !== null ? this._cursorTime : (this._tMin + this._tMax) / 2;
+    this.zoomAround(center, factor);
+  }
+
+  zoomOut(factor = 1.33) {
+    const center = this._cursorTime !== null ? this._cursorTime : (this._tMin + this._tMax) / 2;
+    this.zoomAround(center, factor);
+  }
+
   pan(dtSec) {
     let newMin = this._tMin + dtSec;
     let newMax = this._tMax + dtSec;
@@ -124,6 +134,7 @@ class ChartPanel {
     this.canvas.style.borderRadius = '8px';
     this.canvas.style.background = '#0e111a';
     this.canvas.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+    this.canvas.style.touchAction = 'pan-y'; // Allow vertical scroll when touching outside gestures
     this.wrapper.appendChild(this.canvas);
     this.container.appendChild(this.wrapper);
 
@@ -131,6 +142,12 @@ class ChartPanel {
     this._legendRects = [];
     this._isDragging = false;
     this._lastMouseX = 0;
+    this._isTouchInteracting = false;
+    this._lastTouchX = 0;
+    this._lastTouchY = 0;
+    this._lastTapTime = 0;
+    this._lastPinchDist = 0;
+    this._pinchMidTime = 0;
 
     this._setupEvents();
 
@@ -147,7 +164,7 @@ class ChartPanel {
 
   _resizeCanvas() {
     const rect = this.wrapper.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
     const w = rect.width > 0 ? rect.width : (this.wrapper.clientWidth || this.container.clientWidth || 600);
     const h = rect.height > 0 ? rect.height : (this.options.height || 160);
     this.canvas.width = Math.max(10, Math.floor(w * dpr));
@@ -158,6 +175,7 @@ class ChartPanel {
   }
 
   _setupEvents() {
+    // Wheel zoom (Mac trackpad / PC mouse)
     this.canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
@@ -167,8 +185,8 @@ class ChartPanel {
       this.viewport.zoomAround(t, factor);
     }, { passive: false });
 
+    // Mouse events
     this.canvas.addEventListener('mousedown', (e) => {
-      // Check legend click
       const rect = this.canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -214,6 +232,105 @@ class ChartPanel {
     this.canvas.addEventListener('dblclick', () => {
       this.viewport.reset();
     });
+
+    // ── Touch Events (iOS Safari / iPadOS / Android / Touch Screens) ──
+    this.canvas.addEventListener('touchstart', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        // Check legend tap
+        for (const item of this._legendRects) {
+          if (x >= item.x && x <= item.x + item.w && y >= item.y && y <= item.y + item.h) {
+            e.preventDefault();
+            item.series.hidden = !item.series.hidden;
+            this.draw();
+            return;
+          }
+        }
+
+        // Double tap detection
+        const now = Date.now();
+        if (now - this._lastTapTime < 300) {
+          e.preventDefault();
+          this.viewport.reset();
+          this._lastTapTime = 0;
+          return;
+        }
+        this._lastTapTime = now;
+
+        this._isTouchInteracting = true;
+        this._lastTouchX = touch.clientX;
+        this._lastTouchY = touch.clientY;
+        const t = this._pxToTime(x);
+        this.viewport.setCursor(t);
+      } else if (e.touches.length === 2) {
+        // Pinch-to-zoom start
+        e.preventDefault();
+        this._isTouchInteracting = false;
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        this._lastPinchDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        const midX = ((t1.clientX + t2.clientX) / 2) - rect.left;
+        this._pinchMidTime = this._pxToTime(midX);
+      }
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+
+      if (e.touches.length === 1 && this._isTouchInteracting) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - this._lastTouchX;
+        const dy = touch.clientY - this._lastTouchY;
+
+        // If user is scrubbing/dragging horizontally more than vertically, prevent page scroll
+        if (Math.abs(dx) > Math.abs(dy) || Math.abs(dx) > 3) {
+          e.preventDefault();
+          if (dx !== 0 && this._width > 0) {
+            const dt = -dx * (this.viewport.span / this._width);
+            this.viewport.pan(dt);
+          }
+        }
+
+        this._lastTouchX = touch.clientX;
+        this._lastTouchY = touch.clientY;
+        const x = touch.clientX - rect.left;
+        const t = this._pxToTime(x);
+        this.viewport.setCursor(t);
+      } else if (e.touches.length === 2) {
+        // Pinch zoom active
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        if (this._lastPinchDist > 0 && currentDist > 0) {
+          const ratio = this._lastPinchDist / currentDist;
+          if (ratio > 0.8 && ratio < 1.25) {
+            this.viewport.zoomAround(this._pinchMidTime, ratio);
+          }
+          this._lastPinchDist = currentDist;
+        }
+      }
+    }, { passive: false });
+
+    const handleTouchEnd = (e) => {
+      if (e.touches.length === 0) {
+        this._isTouchInteracting = false;
+        this._lastPinchDist = 0;
+      } else if (e.touches.length === 1) {
+        // Returned to single touch
+        this._lastTouchX = e.touches[0].clientX;
+        this._lastTouchY = e.touches[0].clientY;
+        this._isTouchInteracting = true;
+      }
+    };
+
+    this.canvas.addEventListener('touchend', handleTouchEnd);
+    this.canvas.addEventListener('touchcancel', handleTouchEnd);
   }
 
   _pxToTime(px) {
@@ -671,6 +788,14 @@ class ChartGroup {
         this.viewport.setRange(tStart - 0.5, tEnd + 0.5);
       }
     }
+  }
+
+  zoomIn(factor = 0.75) {
+    this.viewport.zoomIn(factor);
+  }
+
+  zoomOut(factor = 1.33) {
+    this.viewport.zoomOut(factor);
   }
 
   resetZoom() {

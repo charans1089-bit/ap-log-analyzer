@@ -11,4 +11,5 @@
 
 # Exception: synthetic sample is intentional and safe
 !docs/sample/sample_log.csv
+!docs/sample/sample_clean_log.csv
 

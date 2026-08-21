@@ -11,9 +11,11 @@
     setupFilePicker();
     setupDropZone();
     setupFolderPicker();
+    setupDemoButton();
     setupDeleteAll();
     setupBackButton();
     setupResetZoom();
+    setupMobileZoomButtons();
     setupCompareButton();
     setupCompareBack();
 
@@ -21,6 +23,7 @@
     window.UI.updateGeminiPills();
 
     window._processFilesHandler = processFiles;
+    window._loadSampleLog = loadSampleLog;
 
     await refreshHomeView();
     handleHashChange();
@@ -229,6 +232,43 @@
     if (btn) btn.addEventListener('click', () => { window.location.hash = '#home'; });
   }
 
+  function setupDemoButton() {
+    const btn = document.getElementById('btn-load-demo');
+    if (btn) {
+      btn.addEventListener('click', () => loadSampleLog());
+    }
+  }
+
+  function setupMobileZoomButtons() {
+    const zoomInBtn = document.getElementById('btn-zoom-in');
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener('click', () => {
+        if (currentChartGroup) currentChartGroup.zoomIn();
+      });
+    }
+
+    const zoomOutBtn = document.getElementById('btn-zoom-out');
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener('click', () => {
+        if (currentChartGroup) currentChartGroup.zoomOut();
+      });
+    }
+  }
+
+  async function loadSampleLog() {
+    try {
+      window.UI.showToast('Loading demo FA24 datalog...', 'info');
+      const resp = await fetch('docs/sample/sample_log.csv');
+      if (!resp.ok) throw new Error('Could not fetch sample log file.');
+      const blob = await resp.blob();
+      const file = new File([blob], 'sample_stage2_fa24.csv', { type: 'text/csv' });
+      await processFiles([file]);
+    } catch (err) {
+      console.error(err);
+      window.UI.showToast('Failed to load demo log: ' + err.message, 'error');
+    }
+  }
+
   function setupResetZoom() {
     const btn = document.getElementById('btn-reset-zoom');
     if (btn) {
@@ -249,17 +289,19 @@
 
   // ── Hash routing ─────────────────────────────────────────────────────────────
 
-  function handleHashChange() {
+  async function handleHashChange() {
     const hash = window.location.hash;
     if (!hash || hash === '#home') {
-      refreshHomeView();
+      await refreshHomeView();
+    } else if (hash === '#demo' || hash === '#sample') {
+      await loadSampleLog();
     } else if (hash.startsWith('#session/')) {
       const id = hash.slice('#session/'.length);
-      if (id) showSessionView(id);
+      if (id) await showSessionView(id);
     } else if (hash === '#compare') {
-      showCompareView();
+      await showCompareView();
     } else {
-      refreshHomeView();
+      await refreshHomeView();
     }
   }
 

@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+  <meta name="theme-color" content="#0a0c14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AP Analyzer">
+  <meta name="format-detection" content="telephone=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' data: https://generativelanguage.googleapis.com; img-src 'self' data: blob:;">
   <title>Documentation · AP Log Analyzer Pro & Gemini AI</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23111422'/><circle cx='256' cy='256' r='200' fill='%23161a2e' stroke='%2300f2fe' stroke-width='16'/><path d='M280 120 L180 280 L250 280 L230 392 L332 232 L262 232 Z' fill='%2300f2fe'/></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23111422'/><path d='M55 20 L35 55 L50 55 L45 80 L68 45 L53 45 Z' fill='%2300f2fe'/></svg>">
   <link rel="stylesheet" href="css/styles.css">
   <style>
     /* Documentation Page Specific Styling */
@@ -12,12 +20,19 @@
       max-width: 1100px;
       margin: 0 auto;
       padding: 40px 24px 80px;
+      padding-top: calc(20px + env(safe-area-inset-top));
+      padding-bottom: calc(40px + env(safe-area-inset-bottom));
+      padding-left: calc(20px + env(safe-area-inset-left));
+      padding-right: calc(20px + env(safe-area-inset-right));
     }
     .docs-nav-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 16px 28px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      padding-left: calc(20px + env(safe-area-inset-left));
+      padding-right: calc(20px + env(safe-area-inset-right));
       background: var(--bg-surface);
       border-bottom: 1px solid var(--border);
       position: sticky;
@@ -183,9 +198,9 @@
       <p>A comprehensive overview of how the analyzer works, how to export and interpret your datalogs, the technical architecture, and how to calibrate your tune with Google Gemini AI.</p>
     </div>
 
-    <!-- SECTION 1: NON-TECHNICAL USER GUIDE -->
+    <!-- SECTION 1: USER GUIDE & COMPLETE WALKTHROUGH -->
     <section class="docs-section">
-      <h2>🏎️ Part 1: Non-Technical User Guide (What It Does & How to Use)</h2>
+      <h2>🏎️ Part 1: User Guide & Complete Walkthrough</h2>
       
       <h3>What is this app?</h3>
       <p>When you drive a modified or tuned turbo vehicle (such as the 2022+ Subaru WRX with the 2.4L FA24 engine), your <strong>COBB AccessPort (AP)</strong> records hundreds of engine parameters up to 50 times per second into a <code>.csv</code> spreadsheet. Reviewing thousands of rows manually in Excel is tedious and prone to missing quick knock events or lean air/fuel spikes.</p>
@@ -200,19 +215,26 @@
         <li>Select your log and click <strong>Export via USB</strong> to save the <code>.csv</code> file to your computer.</li>
       </ol>
 
-      <h3>How to Use the App</h3>
+      <h3>Step-by-Step Feature Walkthrough</h3>
       <ul>
-        <li><strong>Upload Logs:</strong> Drag and drop your exported <code>.csv</code> files into the upload box on the home screen.</li>
-        <li><strong>Engine Health Score (0–100):</strong> View your instant safety grade. A clean log gets 90–100 (A+). Knock events or lean spikes will drop the score.</li>
-        <li><strong>Tri-Fold Diagnostics:</strong>
+        <li><strong>1. Upload or Try Demo Log:</strong> Drag and drop your <code>.csv</code> files into the upload box on the home screen, browse from your Files app, or tap <strong>⚡ Try Demo Log</strong> for instant sample telemetry.</li>
+        <li><strong>2. Engine Health Score (0–100):</strong> View your instant safety grade. A clean log gets 90–100 (A+). Knock events, lean spikes, or fuel pressure dips automatically drop the score.</li>
+        <li><strong>3. Tri-Fold Diagnostics:</strong>
           <ul>
             <li><span class="tag-safe">🟢 The Good:</span> Confirmed safe operating parameters (e.g., DAM locked at 1.000, proper fuel rail pressure).</li>
             <li><span style="color: var(--accent-gold); font-weight:700;">🟡 The Better:</span> Items to improve (fuel trim drift &gt; &plusmn;8%, minor charge air heat soak).</li>
             <li><span class="tag-danger">🔴 The Worst:</span> Critical risks requiring immediate attention (DAM drops, high knock retard, lean AFR under boost).</li>
           </ul>
         </li>
-        <li><strong>Side-by-Side Comparison:</strong> Compare two logs (e.g. before vs after a mod or tune revision) to see differences in boost, timing, intake temps, and knock counts.</li>
-        <li><strong>Gemini AI Calibration & Chat:</strong> Click <em>"Run Gemini Master Calibration"</em> to stream a professional tuner report, or type questions in the chat box to ask anything about your log.</li>
+        <li><strong>4. Synchronized Multi-Channel Graphs:</strong>
+          <ul>
+            <li><strong>Desktop (Mac / Windows):</strong> Hover to scrub all 5 graphs simultaneously. Scroll wheel to zoom in/out around cursor. Drag horizontally to pan.</li>
+            <li><strong>Touch (iPhone / iPad):</strong> Drag 1 finger across graphs to scrub channels. Pinch with 2 fingers to zoom. Double-tap or tap <code>⟲ Reset</code> to reset graph range.</li>
+            <li><strong>1-Tap WOT Zoom:</strong> Click any pull pill in the sidebar to auto-zoom straight to that WOT run.</li>
+          </ul>
+        </li>
+        <li><strong>5. Side-by-Side Comparison:</strong> Compare two logs (e.g. before vs after a mod or tune revision) to see differences in boost, timing, intake temps, and knock counts.</li>
+        <li><strong>6. Gemini AI Calibration & Chat:</strong> Connect your Gemini API key to stream live Master Tuner calibration reports and ask follow-up questions about knock events or fuel adjustments.</li>
       </ul>
     </section>
 
@@ -355,6 +377,41 @@
           </tbody>
         </table>
       </div>
+    </section>
+
+    <!-- SECTION 4: IOS, IPHONE, IPAD & APPLE SHORTCUTS -->
+    <section class="docs-section">
+      <h2>📱 Part 4: iPhone, iPad, Safari & Apple Shortcuts Guide</h2>
+      <p>AP Log Analyzer Pro is fully engineered for iOS, iPadOS, macOS Safari, Windows, and Android with complete offline browser execution, responsive touch controls, and Apple Shortcuts integration.</p>
+
+      <h3>1. Adding to iPhone & iPad Home Screen</h3>
+      <ul>
+        <li>Open AP Log Analyzer in <strong>Safari</strong> on your iPhone or iPad.</li>
+        <li>Tap the <strong>Share</strong> button (the square with an arrow pointing up).</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+        <li>Launch AP Log Analyzer directly from your Home Screen with a full-screen, app-like experience without browser address bar clutter.</li>
+      </ul>
+
+      <h3>2. Using with Apple Shortcuts</h3>
+      <p>You can create custom Apple Shortcuts on iOS and macOS to automate your tuning workflows:</p>
+      <ul>
+        <li><strong>Open Log Analyzer Shortcut:</strong> In the Shortcuts app, add the action <code>Open URL</code> and set the URL to your AP Log Analyzer address (e.g. <code>http://localhost:8080/index.html</code> or hosted URL).</li>
+        <li><strong>Direct View Links:</strong> You can create shortcuts pointing to specific views:
+          <ul>
+            <li><code>index.html#home</code> — Direct to Session Manager & Log Dropzone</li>
+            <li><code>index.html#demo</code> — Instant 1-tap Demo Log loader (great for quick testing)</li>
+            <li><code>index.html#compare</code> — Direct to Comparative Telemetry & Battle View</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>3. Touch Gestures on iPhone & iPad</h3>
+      <ul>
+        <li><strong>Scrub Channels:</strong> Drag a single finger horizontally across any telemetry graph to scrub all synchronized channels in real-time.</li>
+        <li><strong>Pinch to Zoom:</strong> Use two fingers to pinch in/out directly on the telemetry graphs.</li>
+        <li><strong>Touch Zoom Buttons:</strong> Tap <code>🔍+</code> (Zoom In), <code>🔍−</code> (Zoom Out), or <code>⟲ Reset</code> in the top navigation bar for 1-tap graph control.</li>
+        <li><strong>WOT Pull Navigation:</strong> Tap any WOT pull pill in the sidebar to auto-zoom straight to that full-throttle run.</li>
+      </ul>
     </section>
 
   </main>

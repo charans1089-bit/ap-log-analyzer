@@ -1,0 +1,19 @@
+{
+  "name": "AP Log Analyzer Pro",
+  "short_name": "AP Analyzer",
+  "description": "2022+ Subaru WRX FA24 Cobb AccessPort Telemetry & Gemini AI Diagnostic Dashboard",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23111422'/><circle cx='256' cy='256' r='200' fill='%23161a2e' stroke='%2300f2fe' stroke-width='16'/><path d='M280 120 L180 280 L250 280 L230 392 L332 232 L262 232 Z' fill='%2300f2fe'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

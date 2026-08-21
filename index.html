@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
+  <meta name="theme-color" content="#0a0c14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AP Analyzer">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' data: https://generativelanguage.googleapis.com; img-src 'self' data: blob:;">
   <title>AP Log Analyzer · Pro Telemetry & Gemini AI Diagnostic Dashboard</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23111422'/><circle cx='256' cy='256' r='200' fill='%23161a2e' stroke='%2300f2fe' stroke-width='16'/><path d='M280 120 L180 280 L250 280 L230 392 L332 232 L262 232 Z' fill='%2300f2fe'/></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23111422'/><path d='M55 20 L35 55 L50 55 L45 80 L68 45 L53 45 Z' fill='%2300f2fe'/></svg>">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -20,9 +29,9 @@
         </div>
       </div>
       <div class="header-actions">
-        <a href="docs.html" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 6px;">📖 Documentation</a>
+        <a href="docs.html" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 6px;">📖 Docs</a>
         <button id="btn-gemini-settings-home" class="btn-gemini-pill">✨ Gemini AI</button>
-        <button id="btn-home-compare" class="btn-secondary">⚖️ Compare Datalogs</button>
+        <button id="btn-home-compare" class="btn-secondary">⚖️ Compare</button>
       </div>
     </header>
     
@@ -32,10 +41,11 @@
         <p class="upload-main">Drop Cobb AccessPort <code>.csv</code> logs here or <button id="btn-file-pick" class="btn-primary-inline">Browse Files</button></p>
         <p class="upload-sub">Supports all FA24 Cobb AccessPort CSV logs (comma or tab delimited). 100% private, processed in browser.</p>
         <div class="upload-actions">
+          <button id="btn-load-demo" class="btn-primary btn-sm">⚡ Try Demo Log</button>
           <button id="btn-folder-pick" class="btn-secondary btn-sm hidden">Choose Log Folder</button>
           <button id="btn-reload-folder" class="btn-secondary btn-sm hidden">Reload Folder</button>
         </div>
-        <input type="file" id="file-input" multiple accept=".csv" class="visually-hidden">
+        <input type="file" id="file-input" multiple accept=".csv,text/csv,text/comma-separated-values" class="visually-hidden">
       </section>
       
       <section class="session-section">
@@ -60,13 +70,17 @@
   <div id="view-session" class="hidden">
     <header class="view-toolbar">
       <div class="toolbar-left">
-        <button id="btn-back" class="btn-back">&larr; Back to Sessions</button>
+        <button id="btn-back" class="btn-back" title="Back to Sessions">&larr; Sessions</button>
         <div id="session-title" class="session-title"></div>
       </div>
       <div class="toolbar-actions">
-        <a href="docs.html" class="btn-secondary btn-sm" style="text-decoration:none;">📖 Docs</a>
+        <a href="docs.html" class="btn-secondary btn-sm docs-link-btn" style="text-decoration:none;">📖 Docs</a>
         <button id="btn-gemini-settings-session" class="btn-gemini-pill">✨ Gemini AI</button>
-        <button id="btn-reset-zoom" class="btn-secondary btn-sm">🔍 Reset Zoom</button>
+        <div class="chart-zoom-group">
+          <button id="btn-zoom-in" class="btn-secondary btn-sm btn-icon" title="Zoom In" aria-label="Zoom In">🔍+</button>
+          <button id="btn-zoom-out" class="btn-secondary btn-sm btn-icon" title="Zoom Out" aria-label="Zoom Out">🔍−</button>
+          <button id="btn-reset-zoom" class="btn-secondary btn-sm" title="Reset Graph View">⟲ Reset</button>
+        </div>
       </div>
     </header>
     

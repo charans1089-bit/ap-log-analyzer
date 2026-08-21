@@ -172,6 +172,46 @@
     }
     .tag-safe { color: var(--accent-emerald); font-weight: 700; }
     .tag-danger { color: var(--accent-rose); font-weight: 700; }
+
+    @media (max-width: 640px) {
+      .docs-nav-bar {
+        padding: 12px 14px;
+        padding-top: calc(10px + env(safe-area-inset-top, 0px));
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .docs-container {
+        padding: 16px 12px 60px;
+      }
+      .docs-hero {
+        padding: 24px 14px;
+        margin-bottom: 20px;
+      }
+      .docs-hero h1 {
+        font-size: 1.5rem;
+      }
+      .docs-hero p {
+        font-size: 0.88rem;
+      }
+      .docs-section {
+        padding: 18px 14px;
+        margin-bottom: 20px;
+      }
+      .docs-section h2 {
+        font-size: 1.15rem;
+      }
+      .docs-section h3 {
+        font-size: 0.95rem;
+      }
+      .flowchart-wrap {
+        padding: 14px;
+      }
+      .dict-table th, .dict-table td {
+        padding: 8px 10px;
+        font-size: 0.78rem;
+      }
+    }
   </style>
 </head>
 <body>

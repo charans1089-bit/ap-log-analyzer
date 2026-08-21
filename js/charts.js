@@ -148,11 +148,13 @@ class ChartPanel {
   _resizeCanvas() {
     const rect = this.wrapper.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = Math.max(10, rect.width * dpr);
-    this.canvas.height = Math.max(10, rect.height * dpr);
+    const w = rect.width > 0 ? rect.width : (this.wrapper.clientWidth || this.container.clientWidth || 600);
+    const h = rect.height > 0 ? rect.height : (this.options.height || 160);
+    this.canvas.width = Math.max(10, Math.floor(w * dpr));
+    this.canvas.height = Math.max(10, Math.floor(h * dpr));
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this._width = rect.width;
-    this._height = rect.height;
+    this._width = w;
+    this._height = h;
   }
 
   _setupEvents() {
@@ -497,7 +499,11 @@ class ChartPanel {
       // Indicator pill
       ctx.fillStyle = s.hidden ? 'rgba(100, 110, 130, 0.4)' : (s.color || '#00f2fe');
       ctx.beginPath();
-      ctx.roundRect(curX, 4, 10, 10, 3);
+      if (ctx.roundRect) {
+        ctx.roundRect(curX, 4, 10, 10, 3);
+      } else {
+        ctx.rect(curX, 4, 10, 10);
+      }
       ctx.fill();
 
       // Label text

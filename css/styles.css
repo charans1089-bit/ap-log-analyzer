@@ -1,4 +1,5 @@
 /* === AP LOG ANALYZER PRO · MOTORSPORT TELEMETRY STYLES === */
+/* Cross-Browser Support: Safari (macOS / iOS), Chrome, Edge, Firefox */
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -42,11 +43,33 @@ html, body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* === SAFARI NATIVE RESETS === */
+button, input, select, textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+button {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* === HEADER === */
@@ -58,6 +81,8 @@ body {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
 }
 
 .header-brand {
@@ -68,8 +93,10 @@ body {
 
 .brand-logo {
   font-size: 1.8rem;
+  color: var(--accent-cyan);
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -99,16 +126,6 @@ body {
 }
 
 /* === BUTTONS & CONTROLS === */
-button {
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  outline: none;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-}
-
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
   color: #000;
@@ -230,6 +247,8 @@ button {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .section-title-wrap {
@@ -250,7 +269,7 @@ button {
 
 .session-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 18px;
 }
 
@@ -265,6 +284,7 @@ button {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .session-card:hover {
@@ -278,6 +298,11 @@ button {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 8px;
+}
+
+.session-card-title-group {
+  min-width: 0;
 }
 
 .session-filename {
@@ -287,7 +312,6 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 240px;
 }
 
 .session-tune-tag {
@@ -295,6 +319,10 @@ button {
   font-size: 0.75rem;
   color: var(--accent-cyan);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .session-score-pill {
@@ -303,6 +331,7 @@ button {
   border-radius: var(--radius-sm);
   text-align: center;
   background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .session-score-pill .score-num {
@@ -328,15 +357,21 @@ button {
   border-radius: var(--radius-sm);
 }
 
+.telemetry-mini-stat {
+  min-width: 0;
+}
+
 .telemetry-mini-stat .lbl {
   font-size: 0.68rem;
   color: var(--text-dim);
   display: block;
+  white-space: nowrap;
 }
 
 .telemetry-mini-stat .val {
   font-size: 0.85rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .highlight-cyan { color: var(--accent-cyan); }
@@ -353,6 +388,7 @@ button {
 .session-badges {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -365,10 +401,12 @@ button {
 .badge-ugly { background: rgba(255, 75, 114, 0.15); color: var(--accent-rose); border: 1px solid rgba(255, 75, 114, 0.3); }
 .badge-bad  { background: rgba(251, 146, 60, 0.15); color: var(--accent-orange); border: 1px solid rgba(251, 146, 60, 0.3); }
 .badge-good { background: rgba(0, 245, 160, 0.15); color: var(--accent-emerald); border: 1px solid rgba(0, 245, 160, 0.3); }
+.badge-storage { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); border: 1px solid var(--border); }
 
 .session-card-btns {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn-open {
@@ -384,6 +422,7 @@ button {
 
 .btn-icon-delete {
   background: rgba(255, 255, 255, 0.05);
+  padding: 5px 8px;
 }
 
 .btn-icon-delete:hover {
@@ -411,7 +450,7 @@ button {
 
 .empty-state-card p {
   color: var(--text-muted);
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto 20px;
 }
 
@@ -423,6 +462,8 @@ button {
   padding: 14px 28px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .session-title {
@@ -451,6 +492,8 @@ button {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   position: relative;
   overflow: hidden;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .cockpit-banner::before {
@@ -458,6 +501,10 @@ button {
   position: absolute;
   top: 0; left: 0; right: 0; height: 3px;
   background: linear-gradient(90deg, var(--accent-cyan), var(--accent-emerald), var(--accent-blue));
+}
+
+.cockpit-identity {
+  min-width: 0;
 }
 
 .badge-status-live {
@@ -479,6 +526,7 @@ button {
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 4px 0 6px;
+  word-break: break-all;
 }
 
 .cockpit-meta {
@@ -491,6 +539,7 @@ button {
   display: flex;
   align-items: center;
   gap: 20px;
+  flex-shrink: 0;
 }
 
 .gauge-ring-container {
@@ -502,6 +551,8 @@ button {
 .gauge-svg {
   width: 100%;
   height: 100%;
+  transform: rotate(-90deg);
+  transform-origin: center;
 }
 
 .gauge-bg {
@@ -549,7 +600,7 @@ button {
 /* === METRICS DASHBOARD GRID === */
 .metrics-dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 14px;
   margin-bottom: 24px;
 }
@@ -565,6 +616,7 @@ button {
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
+  min-width: 0;
 }
 
 .cyan-glow   { border-left: 3px solid var(--accent-cyan); }
@@ -584,7 +636,7 @@ button {
   margin-bottom: 10px;
 }
 
-.metric-icon { font-size: 1.1rem; }
+.metric-icon { font-size: 1.1rem; flex-shrink: 0; }
 
 .metric-name {
   font-size: 0.75rem;
@@ -592,6 +644,9 @@ button {
   color: var(--text-muted);
   flex-grow: 1;
   margin-left: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-tag {
@@ -601,6 +656,7 @@ button {
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .metric-main-val {
@@ -641,6 +697,7 @@ button {
   flex-direction: column;
   overflow: hidden;
   box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .diag-good   { border-top: 3px solid var(--accent-emerald); }
@@ -672,6 +729,7 @@ button {
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .good-pill   { background: rgba(0, 245, 160, 0.15); color: var(--accent-emerald); }
@@ -685,6 +743,7 @@ button {
   gap: 10px;
   max-height: 420px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .diag-item {
@@ -693,6 +752,7 @@ button {
   border-radius: var(--radius-sm);
   padding: 12px;
   font-size: 0.82rem;
+  min-width: 0;
 }
 
 .diag-item-header {
@@ -700,6 +760,7 @@ button {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
+  gap: 6px;
 }
 
 .diag-item-desc {
@@ -721,6 +782,7 @@ button {
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .diag-empty-clean {
@@ -755,13 +817,15 @@ button {
   gap: 12px;
 }
 
-.ai-sparkle { font-size: 1.8rem; }
+.ai-sparkle { font-size: 1.8rem; flex-shrink: 0; }
 
 .ai-lab-title h3 {
   font-size: 1.15rem;
   font-weight: 800;
+  color: var(--accent-purple);
   background: linear-gradient(135deg, #fff, var(--accent-purple));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -773,6 +837,7 @@ button {
 .ai-lab-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .ai-executive-summary {
@@ -798,7 +863,7 @@ button {
 
 .ai-recommendations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
 }
@@ -808,6 +873,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 14px;
+  min-width: 0;
 }
 
 .ai-rec-header {
@@ -896,7 +962,6 @@ button {
   padding: 10px 14px;
   color: #fff;
   font-size: 0.85rem;
-  outline: none;
 }
 
 .ai-input-row input:focus {
@@ -945,6 +1010,7 @@ button {
   border-radius: var(--radius-md);
   padding: 16px;
   box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .sidebar-subtitle {
@@ -1020,6 +1086,7 @@ button {
   border-radius: var(--radius-md);
   padding: 20px;
   box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .charts-header {
@@ -1034,6 +1101,10 @@ button {
 .charts-hint {
   font-size: 0.75rem;
   color: var(--text-dim);
+}
+
+.chart-card-wrapper {
+  min-width: 0;
 }
 
 /* === COMPARE SESSIONS VIEW === */
@@ -1051,13 +1122,15 @@ button {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .select-group {
-  flex-grow: 1;
+  flex: 1 1 240px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .select-group label {
@@ -1068,13 +1141,21 @@ button {
 
 .custom-select {
   width: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background-color: #0e111d;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: #fff;
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 0.85rem;
-  outline: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300f2fe' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.custom-select:focus {
+  border-color: var(--accent-cyan);
 }
 
 .select-divider {
@@ -1100,7 +1181,7 @@ button {
   margin-bottom: 24px;
 }
 
-.verdict-icon { font-size: 2.2rem; }
+.verdict-icon { font-size: 2.2rem; flex-shrink: 0; }
 
 .verdict-content h3 {
   font-size: 1.05rem;
@@ -1129,6 +1210,7 @@ button {
   border-radius: var(--radius-md);
   padding: 20px;
   box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .battle-card.winner-card {
@@ -1163,6 +1245,7 @@ button {
   font-size: 1.15rem;
   font-weight: 800;
   margin-bottom: 2px;
+  word-break: break-all;
 }
 
 .battle-tune {
@@ -1221,12 +1304,18 @@ button {
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .telemetry-matrix-card h3 {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 14px;
+}
+
+.matrix-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .matrix-table {
@@ -1260,6 +1349,7 @@ button {
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 0.78rem;
+  display: inline-block;
 }
 
 .delta-good { background: rgba(0, 245, 160, 0.15); color: var(--accent-emerald); }
@@ -1277,6 +1367,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 18px;
+  min-width: 0;
 }
 
 .compare-findings-col h4 {
@@ -1345,6 +1436,7 @@ button {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -1374,5 +1466,6 @@ button {
   .tri-diagnostic-container { grid-template-columns: 1fr; }
   .session-telemetry-body { grid-template-columns: 1fr; }
   .compare-battle-grid { grid-template-columns: 1fr; }
+  .battle-vs-badge { margin: 0 auto; }
   .compare-findings-grid { grid-template-columns: 1fr; }
 }

@@ -238,8 +238,7 @@ window.UI = (function () {
               <circle cx="50" cy="50" r="40" class="gauge-bg" />
               <circle cx="50" cy="50" r="40" class="gauge-bar"
                 stroke="${grade.color}"
-                stroke-dasharray="${strokeDash} ${circumference}"
-                transform="rotate(-90 50 50)" />
+                stroke-dasharray="${strokeDash.toFixed(1)} ${circumference.toFixed(1)}" />
             </svg>
             <div class="gauge-content">
               <span class="gauge-score" style="color:${grade.color}">${score}</span>

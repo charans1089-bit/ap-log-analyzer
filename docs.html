@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com;">
+  <title>Documentation · AP Log Analyzer Pro & Gemini AI</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* Documentation Page Specific Styling */
+    .docs-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    .docs-nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 28px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .docs-hero {
+      text-align: center;
+      padding: 48px 20px 40px;
+      background: linear-gradient(180deg, rgba(22, 26, 46, 0.8), rgba(17, 20, 34, 0.4));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 40px;
+    }
+    .docs-hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .docs-hero p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .docs-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-card);
+    }
+    .docs-section h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .docs-section h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin: 24px 0 10px;
+    }
+    .docs-section p, .docs-section li {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+    .docs-section ul, .docs-section ol {
+      padding-left: 24px;
+      margin: 12px 0;
+    }
+    .docs-section li {
+      margin-bottom: 8px;
+    }
+    .docs-section strong {
+      color: var(--text-main);
+    }
+
+    /* Flowchart Visual Component */
+    .flowchart-wrap {
+      background: #090b12;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin: 24px 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .flow-steps {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 800px;
+      gap: 12px;
+    }
+    .flow-box {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+    .flow-box.active-box {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+    }
+    .flow-box.ai-box {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 15px rgba(192, 132, 252, 0.2);
+    }
+    .flow-icon { font-size: 1.8rem; margin-bottom: 8px; }
+    .flow-title { font-size: 0.85rem; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .flow-desc { font-size: 0.72rem; color: var(--text-dim); }
+    .flow-arrow { font-size: 1.4rem; color: var(--accent-cyan); font-weight: 900; }
+
+    /* Dictionary Table */
+    .dict-table-wrap {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+    .dict-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .dict-table th {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px 14px;
+      text-align: left;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    .dict-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .dict-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .tag-safe { color: var(--accent-emerald); font-weight: 700; }
+    .tag-danger { color: var(--accent-rose); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP NAV -->
+  <header class="docs-nav-bar">
+    <div class="header-brand">
+      <span class="brand-logo">⚡</span>
+      <div>
+        <h1>AP Log Analyzer <span class="badge-pro">DOCUMENTATION</span></h1>
+        <span class="app-subtitle">Subaru FA24 Telemetry & Gemini AI Calibration Guide</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="index.html" class="btn-primary">🏎️ Launch App</a>
+    </div>
+  </header>
+
+  <main class="docs-container">
+
+    <!-- HERO -->
+    <div class="docs-hero">
+      <h1>The Complete AP Log Analyzer Guide</h1>
+      <p>A comprehensive overview of how the analyzer works, how to export and interpret your datalogs, the technical architecture, and how to calibrate your tune with Google Gemini AI.</p>
+    </div>
+
+    <!-- SECTION 1: NON-TECHNICAL USER GUIDE -->
+    <section class="docs-section">
+      <h2>🏎️ Part 1: Non-Technical User Guide (What It Does & How to Use)</h2>
+      
+      <h3>What is this app?</h3>
+      <p>When you drive a modified or tuned turbo vehicle (such as the 2022+ Subaru WRX with the 2.4L FA24 engine), your <strong>COBB AccessPort (AP)</strong> records hundreds of engine parameters up to 50 times per second into a <code>.csv</code> spreadsheet. Reviewing thousands of rows manually in Excel is tedious and prone to missing quick knock events or lean air/fuel spikes.</p>
+      <p><strong>AP Log Analyzer Pro</strong> automatically parses your log files right in your browser, evaluates your engine health, spots critical hazards, and lets you chat with <strong>Google Gemini AI</strong> to diagnose your car's tune.</p>
+
+      <h3>How to Export Logs from your AccessPort</h3>
+      <ol>
+        <li>Plug your COBB AccessPort into your car's OBD-II port.</li>
+        <li>Perform a standard logging run (e.g., cruising or a 3rd gear Wide Open Throttle pull from 2,500 RPM to 6,200 RPM in a safe environment).</li>
+        <li>Connect your AccessPort to your PC/Mac using a USB cable.</li>
+        <li>Open the <strong>Accessport Manager</strong> software &rarr; go to <strong>Settings</strong> &rarr; <strong>Datalog</strong> &rarr; <strong>Manage Logs</strong>.</li>
+        <li>Select your log and click <strong>Export via USB</strong> to save the <code>.csv</code> file to your computer.</li>
+      </ol>
+
+      <h3>How to Use the App</h3>
+      <ul>
+        <li><strong>Upload Logs:</strong> Drag and drop your exported <code>.csv</code> files into the upload box on the home screen.</li>
+        <li><strong>Engine Health Score (0–100):</strong> View your instant safety grade. A clean log gets 90–100 (A+). Knock events or lean spikes will drop the score.</li>
+        <li><strong>Tri-Fold Diagnostics:</strong>
+          <ul>
+            <li><span class="tag-safe">🟢 The Good:</span> Confirmed safe operating parameters (e.g., DAM locked at 1.000, proper fuel rail pressure).</li>
+            <li><span style="color: var(--accent-gold); font-weight:700;">🟡 The Better:</span> Items to improve (fuel trim drift &gt; &plusmn;8%, minor charge air heat soak).</li>
+            <li><span class="tag-danger">🔴 The Worst:</span> Critical risks requiring immediate attention (DAM drops, high knock retard, lean AFR under boost).</li>
+          </ul>
+        </li>
+        <li><strong>Side-by-Side Comparison:</strong> Compare two logs (e.g. before vs after a mod or tune revision) to see differences in boost, timing, intake temps, and knock counts.</li>
+        <li><strong>Gemini AI Calibration & Chat:</strong> Click <em>"Run Gemini Master Calibration"</em> to stream a professional tuner report, or type questions in the chat box to ask anything about your log.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 2: TECHNICAL ARCHITECTURE & FLOWCHART -->
+    <section class="docs-section">
+      <h2>⚙️ Part 2: Technical Architecture & System Flow</h2>
+      
+      <p>The app is built as a zero-cloud-dependency, high-performance web application utilizing modern browser APIs:</p>
+
+      <!-- VISUAL FLOWCHART -->
+      <div class="flowchart-wrap">
+        <div class="flow-steps">
+          
+          <div class="flow-box">
+            <div class="flow-icon">📁</div>
+            <div class="flow-title">1. Raw AP CSV</div>
+            <div class="flow-desc">Tab/comma delimited log file from COBB AP</div>
+          </div>
+
+          <div class="flow-arrow">&rarr;</div>
+
+          <div class="flow-box active-box">
+            <div class="flow-icon">⚡</div>
+            <div class="flow-title">2. Lexer & Parser</div>
+            <div class="flow-desc">Case/unit tolerant header mapper & interval timer</div>
+          </div>
+
+          <div class="flow-arrow">&rarr;</div>
+
+          <div class="flow-box">
+            <div class="flow-icon">🛡️</div>
+            <div class="flow-title">3. Safety Engine</div>
+            <div class="flow-desc">WOT Pull detection & 18 FA24 heuristic rules</div>
+          </div>
+
+          <div class="flow-arrow">&rarr;</div>
+
+          <div class="flow-box">
+            <div class="flow-icon">📈</div>
+            <div class="flow-title">4. Canvas Scrubber</div>
+            <div class="flow-desc">Synchronized 60 FPS multi-graph canvas stack</div>
+          </div>
+
+          <div class="flow-arrow">&rarr;</div>
+
+          <div class="flow-box ai-box">
+            <div class="flow-icon">✨</div>
+            <div class="flow-title">5. Gemini 2.0 LLM</div>
+            <div class="flow-desc">SSE streaming Master Tuner calibration & chat</div>
+          </div>
+
+        </div>
+      </div>
+
+      <h3>Component Breakdown</h3>
+      <ul>
+        <li><strong><code>parser.js</code>:</strong> Ingests raw CSV text, detects delimiters (tab vs comma), strips unit noise, matches 55+ monitor aliases, validates row field counts, and extracts COBB AP metadata.</li>
+        <li><strong><code>metrics.js</code>:</strong> Detects Wide-Open-Throttle (WOT) pull regions where Throttle &gt; 90%, Boost &gt; 0 psi, and RPM &ge; 2,500 over &ge; 0.5s spanning &ge; 500 RPM. Computes peak load, IAT range, and ethanol percent.</li>
+        <li><strong><code>findings.js</code>:</strong> Runs diagnostic rule evaluation against engine safety thresholds (DAM &lt; 1.0, FBK &le; -4.0°, FKL &le; -2.0°, AFR &gt; 12.5 under boost, Injector Duty &gt; 90%, Fuel Pressure drops &gt; 15%).</li>
+        <li><strong><code>ai-analyzer.js</code>:</strong> Categorizes findings into Good/Better/Worst, calculates the weighted Engine Safety Score (0–100), synthesizes tuner recommendations, and generates MCP prompts.</li>
+        <li><strong><code>charts.js</code>:</strong> Custom responsive HTML5 Canvas charting engine with a synchronized <code>SharedViewport</code>, hover time-scrubber across all channels, WOT pull region highlights, and Safari <code>roundRect</code> fallbacks.</li>
+        <li><strong><code>gemini.js</code>:</strong> Direct client-to-Google Gemini API service supporting Server-Sent Events (SSE) streaming, context-aware telemetry prompting, multi-turn chat, and side-by-side log comparison reviews.</li>
+        <li><strong><code>storage.js</code>:</strong> Asynchronous IndexedDB storage engine (`APLogAnalyzer`) storing metadata and raw telemetry locally in the browser sandbox.</li>
+      </ul>
+
+      <h3>Privacy & Air-Gap Model</h3>
+      <p>All CSV parsing, rule evaluations, and charting are executed locally inside your browser process. Log data is never stored on an external server. When Gemini AI is activated, telemetry summaries are streamed directly from your browser to Google's Gemini endpoint using your own private API key.</p>
+    </section>
+
+    <!-- SECTION 3: FA24 METRIC DICTIONARY -->
+    <section class="docs-section">
+      <h2>📖 Part 3: Subaru FA24 Metric Reference Dictionary</h2>
+      <p>Below is a reference guide for the key engine channels monitored by this application:</p>
+
+      <div class="dict-table-wrap">
+        <table class="dict-table">
+          <thead>
+            <tr>
+              <th>Monitor Channel</th>
+              <th>Ideal / Safe Target</th>
+              <th>Warning / Hazardous Threshold</th>
+              <th>Tuning Significance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Dyn Adv Mult (DAM)</strong></td>
+              <td><span class="tag-safe">1.000</span></td>
+              <td><span class="tag-danger">&lt; 1.000</span></td>
+              <td>Global timing multiplier. Drops indicate persistent knock. Address before driving hard.</td>
+            </tr>
+            <tr>
+              <td><strong>Feedback Knock (FBK)</strong></td>
+              <td><span class="tag-safe">0.00° to -1.41°</span> (cruising)</td>
+              <td><span class="tag-danger">&le; -2.80°</span> (under WOT)</td>
+              <td>Real-time reactive knock correction. Cruise blips are normal; WOT knock is dangerous.</td>
+            </tr>
+            <tr>
+              <td><strong>Fine Knock Learn (FKL)</strong></td>
+              <td><span class="tag-safe">0.00°</span></td>
+              <td><span class="tag-danger">&lt; -1.40°</span> (during pull)</td>
+              <td>Learned timing retard in specific load/RPM cells. Persistent FKL requires map adjustment.</td>
+            </tr>
+            <tr>
+              <td><strong>Air/Fuel Ratio (AFR)</strong></td>
+              <td><span class="tag-safe">11.2 – 11.8</span> (under boost)</td>
+              <td><span class="tag-danger">&gt; 12.2</span> (under boost)</td>
+              <td>Mixture under positive manifold pressure. Lean mixtures risk pre-ignition and piston damage.</td>
+            </tr>
+            <tr>
+              <td><strong>Fuel Rail Pressure</strong></td>
+              <td><span class="tag-safe">&gt; 2,000 psi</span> (at WOT)</td>
+              <td><span class="tag-danger">&lt; 1,800 psi</span> (under load)</td>
+              <td>High Pressure Fuel Pump (HPFP) direct injection pressure. Dips indicate fueling limitation.</td>
+            </tr>
+            <tr>
+              <td><strong>AF Learning 1 (LTFT)</strong></td>
+              <td><span class="tag-safe">&plusmn; 0% to 5%</span></td>
+              <td><span class="tag-danger">&gt; &plusmn; 10%</span></td>
+              <td>Long-term fuel trim. Large positive values mean vacuum leaks; negative mean rich conditions.</td>
+            </tr>
+            <tr>
+              <td><strong>Injector Duty Cycle (IDC)</strong></td>
+              <td><span class="tag-safe">&lt; 80%</span></td>
+              <td><span class="tag-danger">&gt; 88%</span></td>
+              <td>Percentage of time fuel injectors are open. &gt;90% indicates fueling system is maxed out.</td>
+            </tr>
+            <tr>
+              <td><strong>Intake Air Temp (IAT)</strong></td>
+              <td><span class="tag-safe">Ambient + 10-25°F</span></td>
+              <td><span class="tag-danger">&gt; 120°F</span></td>
+              <td>Charge air temp. High IATs reduce oxygen density and drastically increase detonation risk.</td>
+            </tr>
+            <tr>
+              <td><strong>Engine Oil Temp</strong></td>
+              <td><span class="tag-safe">195°F – 225°F</span></td>
+              <td><span class="tag-danger">&gt; 245°F</span></td>
+              <td>High temperatures break down oil viscosity and film strength. Install an oil cooler if tracking.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

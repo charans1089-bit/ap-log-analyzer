@@ -60,16 +60,54 @@
         <span>+</span>
       </div>
       <div class="deck-content">
-        <div class="floppy-badge">💾</div>
-        <h2 class="deck-title">INSERT COBB AP DATALOG TAPE</h2>
-        <p class="deck-sub">Drag & Drop AccessPort <code>.csv</code> file or browse your device</p>
-        
-        <div class="deck-actions">
-          <button id="btn-file-pick" class="btn-arcade btn-green">📁 BROWSE CSV FILE</button>
-          <button id="btn-scan" class="btn-arcade btn-pink">🕹️ SCAN LOG</button>
-          <button id="btn-demo-clean" class="btn-arcade btn-yellow btn-sm">⚡ TRY CLEAN DEMO</button>
-          <button id="btn-demo-knock" class="btn-arcade btn-red btn-sm">⚡ TRY KNOCK DEMO</button>
+
+        <!-- INTERACTIVE CASSETTE DECK BAY -->
+        <div class="tape-deck-slot" id="tape-deck-slot">
+
+          <!-- STAGE 1: EMPTY CASSETTE BAY -->
+          <div class="tape-slot-empty" id="tape-slot-empty">
+            <div class="cassette-slot-icon">📼</div>
+            <h2 class="deck-title">COBB AP CASSETTE DECK</h2>
+            <p class="deck-sub">Drag &amp; Drop AccessPort <code>.csv</code> log or click to load tape</p>
+            
+            <div class="tape-slot-primary-action">
+              <button id="btn-insert-tape" class="btn-arcade btn-green btn-large btn-pulse">⏏️ LOAD CSV DATALOG TAPE</button>
+            </div>
+
+            <!-- PRESET CASSETTES -->
+            <div class="preset-tapes-container">
+              <span class="preset-tapes-label">OR QUICK-LOAD PRESET CASSETTE:</span>
+              <div class="preset-tapes-btn-group">
+                <button id="btn-demo-clean" class="btn-arcade btn-yellow btn-sm">📼 TAPE A: CLEAN 93 OCTANE</button>
+                <button id="btn-demo-knock" class="btn-arcade btn-red btn-sm">💥 TAPE B: SEVERE KNOCK EVENT</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 2: TAPE ENGAGED & LOADED -->
+          <div class="tape-slot-loaded hidden" id="tape-slot-loaded">
+            <div class="loaded-tape-top-bar">
+              <span class="tape-led-indicator">● TAPE ENGAGED</span>
+              <button id="btn-eject-tape" class="btn-arcade btn-red btn-sm" title="Eject current CSV log">⏏️ EJECT TAPE</button>
+            </div>
+
+            <div class="loaded-tape-housing" id="loaded-tape-housing">
+              <div class="tape-spindle reel-left" id="spindle-left">⚙️</div>
+              <div class="loaded-tape-sticker">
+                <div class="tape-badge-sub">HIGH BIAS · COBB FA24 TELEMETRY</div>
+                <div class="tape-title" id="loaded-tape-filename">datalog.csv</div>
+                <div class="tape-meta-info" id="loaded-tape-meta">Ready to analyze · 0 rows detected</div>
+              </div>
+              <div class="tape-spindle reel-right" id="spindle-right">⚙️</div>
+            </div>
+
+            <div class="tape-play-action">
+              <button id="btn-scan-trigger" class="btn-arcade btn-pink btn-large btn-glow">🕹️ SCAN TELEMETRY (PLAY TAPE)</button>
+            </div>
+          </div>
+
         </div>
+
         <input type="file" id="file-input" accept=".csv,text/csv,text/comma-separated-values" class="visually-hidden">
       </div>
     </section>

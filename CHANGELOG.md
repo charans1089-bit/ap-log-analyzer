@@ -17,11 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * PDF (share with tuner, formatted print stylesheet)
   * JSON (GitHub repository backup & archival)
   * CSV (Excel/Google Sheets analysis)
-- Optional GitHub integration (step-by-step instructions & CLI snippet)
-- Optional Google Sheets sync (cloud webhook sync and 1-click clipboard row copy)
-- Retro 80s/90s arcade aesthetic with CRT scanlines, neon palette, and 8-bit synthesized Web Audio sound FX
-- Multi-track 8-bit Synthwave Chiptune BGM music engine (100% offline Web Audio sequencer with lead melody, arpeggios, bassline & percussion)
-- Retro Boombox & SoundCloud radio drawer with curated free Creative Commons synthwave streams, track switcher, and volume controls
-- Comparison tool (compare 2 reports side-by-side with delta analysis)
+- Interactive 2-Stage Mechanical Cassette Tape Deck with tactile sound FX, spinning reels, and eject mechanism
+- Expanded 22-Column comprehensive engine telemetry export suite (Boost, AFR, Timing Retard, Knock, DAM, Fuel Pressure, Temps, IAT, Ethanol, IDC, LTFT, Warnings)
+- Pre-configured and Base64-obfuscated Google Sheets Web App endpoint with on-screen password masking & toggle
+- Local-first XSS output sanitization on all dynamic CSV metadata fields
+- Dedicated `/reports/` GitHub backup archive directory
 - Standalone architecture ensuring zero modification or dependencies on the primary analyzer dashboard
 

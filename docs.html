@@ -494,14 +494,15 @@
 
       <h3>How to Use (Step-by-Step)</h3>
       <ol>
-        <li><strong>Open the Page:</strong> Navigate to <code>report-generator.html</code>.</li>
-        <li><strong>Upload Your Log:</strong> Drag and drop your COBB AccessPort <code>.csv</code> datalog file into the cassette drop zone, or tap <strong>📁 Browse CSV File</strong>. You can also test the system instantly with <strong>⚡ Try Clean Demo</strong> or <strong>⚡ Try Knock Demo</strong>.</li>
-        <li><strong>Scan & Review:</strong> Tap <strong>🕹️ Scan Log</strong> to parse telemetry. An arcade CRT summary card will render with key metrics, diagnostic warnings, and an out-of-spec event timeline.</li>
-        <li><strong>Export Your Report:</strong> Choose between <strong>💾 Save as PDF</strong> (print-ready tuner calibration sheet), <strong>💾 Save as JSON</strong> (full telemetry schema for repo backup), or <strong>📊 Save as CSV</strong> (spreadsheet summary row).</li>
-        <li><strong>Compare & Manage:</strong> Access previous runs in the <strong>🗄️ Retro Filing Cabinet</strong> or run a side-by-side delta analysis with <strong>📈 Compare</strong>.</li>
+        <li><strong>Load AP Datalog Tape:</strong> Click <strong>⏏️ LOAD CSV DATALOG TAPE</strong> or drag and drop your AccessPort <code>.csv</code> file into the interactive cassette chamber. Alternatively, test the system instantly with <strong>📼 TAPE A: CLEAN 93</strong> or <strong>💥 TAPE B: SEVERE KNOCK</strong>.</li>
+        <li><strong>Engage &amp; Scan:</strong> Once the tape is inserted, the deck displays the engaged filename and row count with spinning tape reels. Click <strong>🕹️ SCAN TELEMETRY (PLAY TAPE)</strong> to trigger the diagnostic sweep.</li>
+        <li><strong>Review Health Verdict:</strong> Check the large pulsating verdict marquee (<strong style="color:var(--accent-emerald);">Good tune</strong>, <strong style="color:var(--accent-gold);">Watch knock</strong>, or <strong style="color:var(--accent-crimson);">Check tune</strong>), HUD metrics cards, and out-of-spec timeline events.</li>
+        <li><strong>Export Your Report:</strong> Choose between <strong>💾 Save as PDF</strong> (print-ready tuner calibration sheet), <strong>💾 Save as JSON</strong> (full telemetry schema for repo backup), or <strong>📊 Save as CSV</strong> (comprehensive 22-column spreadsheet row).</li>
+        <li><strong>Compare &amp; Manage:</strong> Access previous runs in the <strong>🗄️ Retro Filing Cabinet</strong> or run a side-by-side delta analysis with <strong>📈 Compare</strong>.</li>
+        <li><strong>Listen to Retro BGM / Radio:</strong> Enjoy continuous offline 8-bit chiptune synthesizer tunes or stream free Synthwave &amp; Retrowave mixes from SoundCloud via the <strong>📻 RETRO BOOMBOX</strong>.</li>
       </ol>
 
-      <h3>Metrics Explained & Safe Operating Ranges</h3>
+      <h3>Metrics Explained &amp; Safe Operating Ranges</h3>
       <div class="dict-table-wrap">
         <table class="dict-table">
           <thead>
@@ -544,6 +545,30 @@
               <td>Global timing confidence multiplier. Standard baseline is 1.000.</td>
             </tr>
             <tr>
+              <td><strong>Direct Inj Fuel Pressure</strong></td>
+              <td><code>Sns Fuel Press MONITOR (psi)</code></td>
+              <td><span class="tag-safe">&gt; 2,000 PSI</span> (in boost)</td>
+              <td>High-pressure fuel rail delivery. Dips below 2,000 PSI indicate pump starvation.</td>
+            </tr>
+            <tr>
+              <td><strong>Peak Oil &amp; Coolant Temp</strong></td>
+              <td><code>Oil Temp (F)</code>, <code>Coolant Temp (F)</code></td>
+              <td><span class="tag-safe">&lt; 235°F Oil / &lt; 205°F ECT</span></td>
+              <td>Thermal ceiling management during repeated aggressive pulls or track lapping.</td>
+            </tr>
+            <tr>
+              <td><strong>Injector Duty Cycle (IDC)</strong></td>
+              <td><code>Inj Duty Cycle (%)</code>, <code>IDC</code></td>
+              <td><span class="tag-safe">&lt; 85.0%</span></td>
+              <td>Percentage of available intake cycle the fuel injectors remain open.</td>
+            </tr>
+            <tr>
+              <td><strong>A/F Learning 1 (LTFT)</strong></td>
+              <td><code>A/F Learning 1 (%)</code>, <code>LTFT</code></td>
+              <td><span class="tag-safe">&plusmn; 5.0%</span></td>
+              <td>Long term closed-loop fuel trim drift. Exceeding &plusmn;8% indicates unmetered air leaks.</td>
+            </tr>
+            <tr>
               <td><strong>Session Duration</strong></td>
               <td><code>Time (sec)</code> delta</td>
               <td><span class="tag-safe">N/A</span></td>
@@ -566,7 +591,7 @@
       <ul>
         <li><strong>Capacity:</strong> Stores up to the last <strong>50 reports</strong>. Older reports are automatically pruned when new logs are added.</li>
         <li><strong>Filing Cabinet:</strong> Tap <strong>📚 History</strong> to open the retro drawer, search past logs, reload historical reports, or delete single entries.</li>
-        <li><strong>Privacy:</strong> No telemetry is uploaded to external web servers.</li>
+        <li><strong>Privacy:</strong> 100% client-side. No telemetry or filenames are uploaded to external analytics servers.</li>
       </ul>
 
       <h3>Export Options</h3>
@@ -589,10 +614,25 @@
       <h3>Google Sheets Cloud Integration (Webhook &amp; Copy)</h3>
       <p>You can connect your personal Google Sheet to auto-log every scanned report into a permanent tuning spreadsheet:</p>
       <ul>
-        <li><strong>1. Create Google Sheet:</strong> Create a sheet and paste the 22 header columns in Row 1.</li>
-        <li><strong>2. Add Apps Script:</strong> Go to <em>Extensions &rarr; Apps Script</em>, add the <code>doPost(e)</code> webhook snippet, and deploy as a Web App (Access: Anyone).</li>
-        <li><strong>3. Connect &amp; Auto-Sync:</strong> Paste the deployment URL into the <strong>☁️ Sync to Google Sheets</strong> box in the Report Generator and check <em>Enable Cloud Auto-Sync</em>.</li>
-        <li><strong>4. 1-Click Clipboard:</strong> Alternatively, tap <strong>📋 Copy Row Format</strong> and press <code>Ctrl+V</code> / <code>Cmd+V</code> directly in your spreadsheet!</li>
+        <li><strong>1. Create Google Sheet:</strong> Create a sheet on <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan);">sheets.new</a> and paste the 22 header columns in Row 1.</li>
+        <li><strong>2. Add Webhook Apps Script:</strong> Go to <em>Extensions &rarr; Apps Script</em> and paste:
+          <pre style="background: #090b16; padding: 10px; border-radius: 6px; border: 1px solid var(--border); color: #00ff66; font-size: 0.8rem; overflow-x: auto; margin-top: 6px;">function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var d = JSON.parse(e.postData.contents);
+  sheet.appendRow([d.timestamp, d.filename, d.tuneName, d.durationSec, d.totalRows, d.peakBoostPsi, d.minAfr, d.maxTimingRetardDeg, d.knockCount, d.damEvents, d.minDam, d.peakRpm, d.peakLoad, d.minFuelPressure, d.maxOilTemp, d.maxCoolantTemp, d.maxIat, d.ethanolPct, d.peakIdc, d.maxLtft, d.verdict, d.warnings]);
+  return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </li>
+        <li><strong>3. Deploy Web App:</strong> Deploy as Web App (Execute as: <em>Me</em>, Access: <em>Anyone</em>).</li>
+        <li><strong>4. Connect &amp; Auto-Sync:</strong> Paste your Web App URL into the <strong>☁️ Sync to Google Sheets</strong> box in the Report Generator and check <em>Enable Cloud Auto-Sync</em> (URL is password-masked with an <code>👁️</code> toggle for security).</li>
+        <li><strong>5. 1-Click Clipboard:</strong> Alternatively, tap <strong>📋 Copy Row Format</strong> and press <code>Ctrl+V</code> / <code>Cmd+V</code> directly in your spreadsheet!</li>
+      </ul>
+
+      <h3>Retro Music Engine &amp; SoundCloud Radio</h3>
+      <ul>
+        <li><strong>8-Bit Chiptune Synthesizer:</strong> Multi-track 100% offline Web Audio sequencer playing lead melodies, arpeggios, sub-basslines, and retro drum pulses (<em>Track 1: Cyber Turbo FA24</em>, <em>Track 2: Midnight Outrun Cruise</em>, <em>Track 3: Arcade Stage Clear</em>).</li>
+        <li><strong>SoundCloud Radio:</strong> Integrated streaming drawer with curated Creative Commons presets (<em>🔥 Free Synthwave Mix</em>, <em>🕹️ 8-Bit Arcade Gems</em>, <em>🏎️ Turbo Drift Cyberpunk</em>) plus custom URL loader.</li>
+        <li><strong>Equalizer Visualizer:</strong> Mini dancing equalizer in top navigation bar and spinning cassette tape reels.</li>
       </ul>
 
       <h3>Example Use Cases</h3>
@@ -600,19 +640,21 @@
         <li><strong>After Every Track Day:</strong> Drop your AccessPort CSV into the generator to verify DAM stayed at 1.000 and oil temperatures remained safe.</li>
         <li><strong>Compare Tune Revisions:</strong> Use the <strong>📈 Compare</strong> tool to review Log A vs Log B before and after installing bolt-on parts or updating ECU maps.</li>
         <li><strong>Tuner Collaboration:</strong> Export clean PDF reports to email directly to your calibrator.</li>
-        <li><strong>Version History:</strong> Store JSON reports in GitHub to track telemetry across different seasons and ambient temperatures.</li>
+        <li><strong>Version History:</strong> Store JSON reports in GitHub <code>/reports/</code> to track telemetry across different seasons and ambient temperatures.</li>
       </ul>
 
-      <h3>Features & Limitations</h3>
+      <h3>Features &amp; Limitations</h3>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
         <div style="background: rgba(0, 255, 102, 0.05); border: 1px solid rgba(0, 255, 102, 0.2); border-radius: 6px; padding: 14px;">
           <h4 style="color: var(--accent-emerald); margin-bottom: 8px;">✨ Features</h4>
           <ul style="padding-left: 18px; margin: 0;">
-            <li>Instant client-side CSV parsing & verdict calculation</li>
-            <li>Multiple export options (PDF, JSON, CSV)</li>
-            <li>Local-first privacy with IndexedDB storage</li>
-            <li>Interactive 80s/90s arcade theme with CRT effects & 8-bit audio</li>
-            <li>Side-by-side comparison & filing cabinet history</li>
+            <li>Interactive 2-stage Cassette Deck Bay &amp; tactile animations</li>
+            <li>Instant client-side CSV parsing &amp; verdict calculation</li>
+            <li>22-column comprehensive Google Sheets cloud sync &amp; CSV export</li>
+            <li>Multi-track offline 8-bit chiptune synth &amp; SoundCloud Radio</li>
+            <li>Local-first privacy with IndexedDB storage (50 reports max)</li>
+            <li>Interactive 80s/90s arcade theme with CRT scanlines &amp; SFX</li>
+            <li>Side-by-side delta comparison &amp; filing cabinet history</li>
           </ul>
         </div>
         <div style="background: rgba(255, 230, 0, 0.05); border: 1px solid rgba(255, 230, 0, 0.2); border-radius: 6px; padding: 14px;">
@@ -630,17 +672,18 @@
       <pre style="background: #090b16; padding: 14px; border-radius: 6px; border: 1px solid var(--border); color: #fff; font-family: var(--font-mono); margin-top: 12px; overflow-x: auto;">
 ap-log-analyzer/
 ├── report-generator.html   # Standalone retro report generator web page
-├── report-generator.js     # Parser, metrics, verdict logic & IndexedDB manager
-├── report-export.js        # PDF print, JSON, CSV & Cloud export engine
-├── report-styles.css       # CRT scanlines, arcade palette & print stylesheet
+├── report-generator.js     # Parser, metrics, verdict logic &amp; IndexedDB manager
+├── report-export.js        # PDF print, JSON, CSV &amp; Cloud export engine
+├── report-styles.css       # CRT scanlines, arcade palette &amp; print stylesheet
 ├── CHANGELOG.md            # Release notes and feature history
+├── docs.html               # Complete project documentation &amp; calibration guides
 └── reports/                # (Recommended) Directory for archived JSON reports</pre>
 
-      <h3>FAQ & Troubleshooting</h3>
+      <h3>FAQ &amp; Troubleshooting</h3>
       <ul>
         <li><strong>Why is local storage limited to 50 reports?</strong> To maintain optimal browser performance and prevent IndexedDB bloat. Older reports are auto-pruned, so export important runs as JSON or PDF.</li>
         <li><strong>Can I use the Report Generator on iPhone or Android?</strong> Yes, the interface is fully responsive with touch-optimized controls and offline capability.</li>
-        <li><strong>What happens if I clear browser cache?</strong> Reports stored in IndexedDB will be erased. Be sure to export your reports as JSON or PDF if you want permanent archives.</li>
+        <li><strong>What happens if I clear browser cache?</strong> Reports stored in IndexedDB will be erased. Be sure to export your reports as JSON or PDF if you want permanent archives in <code>/reports/</code>.</li>
         <li><strong>Does it modify my original CSV file?</strong> No, file reading is strictly read-only within the browser sandbox.</li>
       </ul>
     </section>

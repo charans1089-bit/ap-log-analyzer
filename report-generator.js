@@ -78,6 +78,16 @@
       playTone(180, 'sawtooth', 0.2, 0.2);
       setTimeout(() => playTone(150, 'sawtooth', 0.3, 0.2), 200);
     },
+    insertTape: () => {
+      if (!soundEnabled) return;
+      playTone(280, 'square', 0.06, 0.18);
+      setTimeout(() => playTone(540, 'triangle', 0.12, 0.2), 60);
+    },
+    ejectTape: () => {
+      if (!soundEnabled) return;
+      playTone(480, 'square', 0.08, 0.15);
+      setTimeout(() => playTone(240, 'square', 0.12, 0.18), 70);
+    },
     delete: () => {
       playTone(400, 'square', 0.08, 0.1);
       setTimeout(() => playTone(200, 'square', 0.15, 0.1), 80);
@@ -767,8 +777,15 @@
   function initDOM() {
     DOM.dropZone = document.getElementById('drop-zone');
     DOM.fileInput = document.getElementById('file-input');
-    DOM.btnFilePick = document.getElementById('btn-file-pick');
-    DOM.btnScan = document.getElementById('btn-scan');
+    DOM.tapeDeckSlot = document.getElementById('tape-deck-slot');
+    DOM.tapeSlotEmpty = document.getElementById('tape-slot-empty');
+    DOM.tapeSlotLoaded = document.getElementById('tape-slot-loaded');
+    DOM.btnInsertTape = document.getElementById('btn-insert-tape');
+    DOM.btnEjectTape = document.getElementById('btn-eject-tape');
+    DOM.btnScanTrigger = document.getElementById('btn-scan-trigger');
+    DOM.loadedTapeFilename = document.getElementById('loaded-tape-filename');
+    DOM.loadedTapeMeta = document.getElementById('loaded-tape-meta');
+    DOM.loadedTapeHousing = document.getElementById('loaded-tape-housing');
     DOM.btnDemoClean = document.getElementById('btn-demo-clean');
     DOM.btnDemoKnock = document.getElementById('btn-demo-knock');
     DOM.btnSoundToggle = document.getElementById('btn-sound-toggle');
@@ -970,15 +987,28 @@
 
   async function processLogText(text, filename) {
     try {
-      SoundFX.scan();
-      logTerminal(`SCANNING LOG: ${filename}...`);
-      
+      SoundFX.insertTape();
+      logTerminal(`LOADING CASSETTE: ${filename}...`);
+
+      if (DOM.loadedTapeFilename) DOM.loadedTapeFilename.textContent = filename;
+      if (DOM.loadedTapeMeta) DOM.loadedTapeMeta.textContent = 'Engaging tape heads · Analyzing telemetry...';
+      if (DOM.tapeSlotEmpty) DOM.tapeSlotEmpty.classList.add('hidden');
+      if (DOM.tapeSlotLoaded) DOM.tapeSlotLoaded.classList.remove('hidden');
+      if (DOM.loadedTapeHousing) DOM.loadedTapeHousing.classList.add('scanning');
+
+      setTimeout(SoundFX.scan, 120);
+
       const parsed = parseCSVContent(text, filename);
       logTerminal(`PARSED ${parsed.totalRows} ROWS. EVALUATING SAFETY RULES...`);
 
       const report = generateHealthReport(parsed);
       await saveReportToDB(report);
-      
+
+      setTimeout(() => {
+        if (DOM.loadedTapeHousing) DOM.loadedTapeHousing.classList.remove('scanning');
+        if (DOM.loadedTapeMeta) DOM.loadedTapeMeta.textContent = `${report.totalRows} rows · Peak: ${report.metrics.peakBoostPsi.toFixed(1)} PSI · ${report.verdictLabel}`;
+      }, 500);
+
       logTerminal(`ANALYSIS COMPLETE. VERDICT: ${report.verdictLabel.toUpperCase()}`);
       renderReport(report);
       showToast('💾 Report saved to local history!');
@@ -986,6 +1016,7 @@
       console.error('Log process error:', err);
       logTerminal(`ERROR: ${err.message}`);
       SoundFX.warn();
+      if (DOM.loadedTapeHousing) DOM.loadedTapeHousing.classList.remove('scanning');
       alert(`Could not process log file: ${err.message}`);
     }
   }
@@ -1257,11 +1288,48 @@
       DOM.btnRetroToggle.textContent = active ? '📺 RETRO CRT' : '💻 CLEAN MODE';
     });
 
-    // File picker button
-    DOM.btnFilePick.addEventListener('click', () => {
-      SoundFX.click();
-      DOM.fileInput.click();
-    });
+    function ejectTape() {
+      SoundFX.ejectTape();
+      DOM.fileInput.value = '';
+      if (DOM.tapeSlotLoaded) DOM.tapeSlotLoaded.classList.add('hidden');
+      if (DOM.tapeSlotEmpty) DOM.tapeSlotEmpty.classList.remove('hidden');
+      if (DOM.reportArea) DOM.reportArea.classList.add('hidden');
+      if (DOM.loadedTapeHousing) DOM.loadedTapeHousing.classList.remove('scanning');
+      logTerminal('TAPE EJECTED. INSERT COBB AP CSV LOG.');
+      DOM.dropZone.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Insert Tape button
+    if (DOM.btnInsertTape) {
+      DOM.btnInsertTape.addEventListener('click', () => {
+        SoundFX.click();
+        DOM.fileInput.click();
+      });
+    }
+
+    // Eject Tape button
+    if (DOM.btnEjectTape) {
+      DOM.btnEjectTape.addEventListener('click', ejectTape);
+    }
+
+    // Scan Trigger button (Play Tape)
+    if (DOM.btnScanTrigger) {
+      DOM.btnScanTrigger.addEventListener('click', () => {
+        if (currentReport) {
+          SoundFX.scan();
+          if (DOM.loadedTapeHousing) {
+            DOM.loadedTapeHousing.classList.add('scanning');
+            setTimeout(() => DOM.loadedTapeHousing.classList.remove('scanning'), 600);
+          }
+          renderReport(currentReport);
+        } else if (DOM.fileInput.files && DOM.fileInput.files.length > 0) {
+          const file = DOM.fileInput.files[0];
+          const reader = new FileReader();
+          reader.onload = (evt) => processLogText(evt.target.result, file.name);
+          reader.readAsText(file);
+        }
+      });
+    }
 
     DOM.fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -1296,19 +1364,6 @@
       }
     });
 
-    // Scan Button
-    DOM.btnScan.addEventListener('click', () => {
-      SoundFX.click();
-      if (!DOM.fileInput.files || DOM.fileInput.files.length === 0) {
-        DOM.fileInput.click();
-      } else {
-        const file = DOM.fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = (evt) => processLogText(evt.target.result, file.name);
-        reader.readAsText(file);
-      }
-    });
-
     // Demo Log buttons
     DOM.btnDemoClean.addEventListener('click', () => {
       processLogText(SAMPLE_LOGS.clean, 'Demo_Clean_Tune_FA24.csv');
@@ -1320,10 +1375,7 @@
 
     // Reset View / Analyze another
     DOM.btnResetView.addEventListener('click', () => {
-      SoundFX.click();
-      DOM.reportArea.classList.add('hidden');
-      DOM.dropZone.scrollIntoView({ behavior: 'smooth' });
-      logTerminal('READY. DROP AP CSV LOG TO SCAN.');
+      ejectTape();
     });
 
     // Export Buttons

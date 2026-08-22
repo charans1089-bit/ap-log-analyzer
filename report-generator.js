@@ -408,6 +408,11 @@
     fuel_press: ['snsfuelpressmonitor', 'fuelpressure', 'snsfuelpressmonitorpsi', 'fuelpress', 'highpressurefuelpump'],
     oil_temp: ['oiltemp', 'oiltempf', 'engineoiltemp', 'engineoiltemperature'],
     coolant_temp: ['coolanttemp', 'coolanttempf', 'ect', 'enginecoolanttemp', 'coolanttemperature'],
+    intake_temp: ['intaketemp', 'intaketempf', 'iat', 'intakeairtemp', 'intakeairtemperature', 'intaketempmanifold'],
+    ethanol: ['ethanolconcfinal', 'ethanolconcraw', 'ethanolcontent', 'ethanol', 'ethanolconc'],
+    inj_duty_cycle: ['injdutycycle', 'injectordutycycle', 'idc', 'injdutycyclepercent'],
+    af_learning_1: ['aflearning1', 'aflearn1', 'longtermfueltrim', 'ltft'],
+    af_correction_1: ['afcorrection1', 'afcorr1', 'shorttermfueltrim', 'stft'],
     throttle_pos: ['throttlepos', 'throttleposition', 'throttlepospercent', 'tps', 'accelposition', 'accelpos']
   };
 
@@ -492,6 +497,11 @@
     let minFuelPressure = Infinity;
     let maxOilTemp = -Infinity;
     let maxCoolantTemp = -Infinity;
+    let maxIat = -Infinity;
+    let ethanolPct = 0;
+    let peakIdc = 0;
+    let maxLtft = 0;
+    let maxStft = 0;
 
     const outOfSpecMoments = [];
     const warnings = [];
@@ -588,9 +598,18 @@
         }
       }
 
-      // Temps
+      // Temps & Extended Channels
       if (r.oil_temp !== undefined && r.oil_temp > maxOilTemp) maxOilTemp = r.oil_temp;
       if (r.coolant_temp !== undefined && r.coolant_temp > maxCoolantTemp) maxCoolantTemp = r.coolant_temp;
+      if (r.intake_temp !== undefined && r.intake_temp > maxIat) maxIat = r.intake_temp;
+      if (r.ethanol !== undefined && r.ethanol > 0) ethanolPct = Math.max(ethanolPct, r.ethanol);
+      if (r.inj_duty_cycle !== undefined && r.inj_duty_cycle > peakIdc) peakIdc = r.inj_duty_cycle;
+      if (r.af_learning_1 !== undefined && !isNaN(r.af_learning_1)) {
+        if (Math.abs(r.af_learning_1) > Math.abs(maxLtft)) maxLtft = r.af_learning_1;
+      }
+      if (r.af_correction_1 !== undefined && !isNaN(r.af_correction_1)) {
+        if (Math.abs(r.af_correction_1) > Math.abs(maxStft)) maxStft = r.af_correction_1;
+      }
     });
 
     // Cleanup infinities
@@ -600,6 +619,7 @@
     if (minFuelPressure === Infinity) minFuelPressure = 2150;
     if (maxOilTemp === -Infinity) maxOilTemp = 210;
     if (maxCoolantTemp === -Infinity) maxCoolantTemp = 190;
+    if (maxIat === -Infinity) maxIat = 90;
 
     // Build Warnings List
     if (minDam < 0.95) {
@@ -615,6 +635,12 @@
     }
     if (maxOilTemp > 240) {
       warnings.push(`High oil temperature reached ${Math.round(maxOilTemp)}°F. Consider cooling laps or an aftermarket oil cooler.`);
+    }
+    if (peakIdc > 90) {
+      warnings.push(`High Injector Duty Cycle reached ${peakIdc.toFixed(1)}% (> 90% threshold). Fueling system near capacity.`);
+    }
+    if (Math.abs(maxLtft) > 8.0) {
+      warnings.push(`Long Term Fuel Trim drift observed (${maxLtft > 0 ? '+' : ''}${maxLtft.toFixed(1)}%). Check for intake air leaks.`);
     }
 
     // VERDICT CALCULATION (Per specification)
@@ -666,13 +692,21 @@
         peakLoad,
         minFuelPressure,
         maxOilTemp,
-        maxCoolantTemp
+        maxCoolantTemp,
+        maxIat,
+        ethanolPct,
+        peakIdc,
+        maxLtft,
+        maxStft
       },
       safeRanges: {
         afr: '11.0 – 13.5 (under boost: 11.2–12.0)',
         timing: '>= -1.00°',
         dam: '1.000 (>= 0.95)',
-        knock: '0 counts'
+        knock: '0 counts',
+        fuelPressure: '> 2000 PSI under load',
+        oilTemp: '< 235°F',
+        idc: '< 85%'
       },
       warnings,
       outOfSpecMoments

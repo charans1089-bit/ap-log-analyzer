@@ -91,7 +91,7 @@
     downloadBlob(blob, filename);
   }
 
-  // 3. SAVE AS CSV (Summary row for spreadsheets)
+  // 3. SAVE AS CSV (Comprehensive row for spreadsheets)
   function exportCSV(report) {
     if (!report) return;
     const ts = getTimestampString(report.timestamp);
@@ -100,35 +100,54 @@
     const headers = [
       'Timestamp',
       'FileName',
+      'TuneMap',
       'DurationSec',
       'TotalRows',
       'PeakBoostPSI',
       'MinAFR',
       'MaxTimingRetardDeg',
-      'KnockCount',
+      'KnockEvents',
       'DAMEvents',
       'MinDAM',
       'PeakRPM',
+      'PeakLoad',
+      'MinFuelPressurePSI',
+      'MaxOilTempF',
+      'MaxCoolantTempF',
+      'MaxIAT_F',
+      'EthanolPct',
+      'PeakIDC_Pct',
+      'AFLearn1_Pct',
       'Verdict',
-      'WarningsCount'
+      'Warnings'
     ];
 
     const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
 
+    const m = report.metrics;
     const values = [
       escapeCsv(new Date(report.timestamp).toLocaleString()),
       escapeCsv(report.filename),
+      escapeCsv(report.tuneName || 'N/A'),
       report.durationSec.toFixed(2),
       report.totalRows,
-      report.metrics.peakBoostPsi.toFixed(1),
-      report.metrics.minAfr.toFixed(2),
-      report.metrics.maxTimingRetardDeg.toFixed(2),
-      report.metrics.knockCount,
-      report.metrics.damEvents,
-      report.metrics.minDam.toFixed(3),
-      Math.round(report.metrics.peakRpm),
+      m.peakBoostPsi.toFixed(1),
+      m.minAfr.toFixed(2),
+      m.maxTimingRetardDeg.toFixed(2),
+      m.knockCount,
+      m.damEvents,
+      m.minDam.toFixed(3),
+      Math.round(m.peakRpm),
+      m.peakLoad ? m.peakLoad.toFixed(2) : '0.00',
+      m.minFuelPressure ? Math.round(m.minFuelPressure) : 'N/A',
+      m.maxOilTemp ? Math.round(m.maxOilTemp) : 'N/A',
+      m.maxCoolantTemp ? Math.round(m.maxCoolantTemp) : 'N/A',
+      m.maxIat ? Math.round(m.maxIat) : 'N/A',
+      m.ethanolPct ? m.ethanolPct.toFixed(1) : '0.0',
+      m.peakIdc ? m.peakIdc.toFixed(1) : '0.0',
+      m.maxLtft !== undefined ? m.maxLtft.toFixed(1) : '0.0',
       escapeCsv(report.verdictLabel),
-      (report.warnings || []).length
+      escapeCsv((report.warnings || []).join('; '))
     ];
 
     const csvContent = headers.join(',') + '\n' + values.join(',') + '\n';
@@ -204,18 +223,30 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
     }
 
     try {
+      const m = report.metrics;
       const payload = {
-        timestamp: new Date(report.timestamp).toISOString(),
+        timestamp: new Date(report.timestamp).toLocaleString(),
         filename: report.filename,
-        durationSec: report.durationSec,
-        peakBoostPsi: report.metrics.peakBoostPsi,
-        minAfr: report.metrics.minAfr,
-        maxTimingRetardDeg: report.metrics.maxTimingRetardDeg,
-        knockCount: report.metrics.knockCount,
-        damEvents: report.metrics.damEvents,
-        minDam: report.metrics.minDam,
-        peakRpm: report.metrics.peakRpm,
-        verdict: report.verdictLabel
+        tuneName: report.tuneName || 'N/A',
+        durationSec: report.durationSec.toFixed(2),
+        totalRows: report.totalRows,
+        peakBoostPsi: m.peakBoostPsi.toFixed(1),
+        minAfr: m.minAfr.toFixed(2),
+        maxTimingRetardDeg: m.maxTimingRetardDeg.toFixed(2),
+        knockCount: m.knockCount,
+        damEvents: m.damEvents,
+        minDam: m.minDam.toFixed(3),
+        peakRpm: Math.round(m.peakRpm),
+        peakLoad: m.peakLoad ? m.peakLoad.toFixed(2) : '0.00',
+        minFuelPressure: m.minFuelPressure ? Math.round(m.minFuelPressure) : 'N/A',
+        maxOilTemp: m.maxOilTemp ? Math.round(m.maxOilTemp) : 'N/A',
+        maxCoolantTemp: m.maxCoolantTemp ? Math.round(m.maxCoolantTemp) : 'N/A',
+        maxIat: m.maxIat ? Math.round(m.maxIat) : 'N/A',
+        ethanolPct: m.ethanolPct ? m.ethanolPct.toFixed(1) : '0.0',
+        peakIdc: m.peakIdc ? m.peakIdc.toFixed(1) : '0.0',
+        maxLtft: m.maxLtft !== undefined ? m.maxLtft.toFixed(1) : '0.0',
+        verdict: report.verdictLabel,
+        warnings: (report.warnings || []).join('; ')
       };
 
       // POST to Google Apps Script Webhook / endpoint
@@ -235,18 +266,30 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
 
   function copySheetsRow(report) {
     if (!report) return false;
+    const m = report.metrics;
     const row = [
       new Date(report.timestamp).toLocaleString(),
       report.filename,
+      report.tuneName || 'N/A',
       report.durationSec.toFixed(2),
-      report.metrics.peakBoostPsi.toFixed(1),
-      report.metrics.minAfr.toFixed(2),
-      report.metrics.maxTimingRetardDeg.toFixed(2),
-      report.metrics.knockCount,
-      report.metrics.damEvents,
-      report.metrics.minDam.toFixed(3),
-      Math.round(report.metrics.peakRpm),
-      report.verdictLabel
+      report.totalRows,
+      m.peakBoostPsi.toFixed(1),
+      m.minAfr.toFixed(2),
+      m.maxTimingRetardDeg.toFixed(2),
+      m.knockCount,
+      m.damEvents,
+      m.minDam.toFixed(3),
+      Math.round(m.peakRpm),
+      m.peakLoad ? m.peakLoad.toFixed(2) : '0.00',
+      m.minFuelPressure ? Math.round(m.minFuelPressure) : 'N/A',
+      m.maxOilTemp ? Math.round(m.maxOilTemp) : 'N/A',
+      m.maxCoolantTemp ? Math.round(m.maxCoolantTemp) : 'N/A',
+      m.maxIat ? Math.round(m.maxIat) : 'N/A',
+      m.ethanolPct ? m.ethanolPct.toFixed(1) : '0.0',
+      m.peakIdc ? m.peakIdc.toFixed(1) : '0.0',
+      m.maxLtft !== undefined ? m.maxLtft.toFixed(1) : '0.0',
+      report.verdictLabel,
+      (report.warnings || []).join('; ')
     ].join('\t');
 
     try {

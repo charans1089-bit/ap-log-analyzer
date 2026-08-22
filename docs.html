@@ -573,7 +573,7 @@
       <ul>
         <li><strong>1. Save as PDF:</strong> Formatted via a clean print stylesheet. Browser automatically suggests <code>SCRK_Report_[YYYY-MM-DD_HH-MM-SS].pdf</code> for tuner review.</li>
         <li><strong>2. Save as JSON:</strong> Complete structured report file including metadata, metrics, warnings, and out-of-spec moments for repository backups (<code>report_[timestamp].json</code>).</li>
-        <li><strong>3. Save as CSV:</strong> Exports a spreadsheet summary row (<code>report_[timestamp].csv</code>) with columns: <code>Timestamp, FileName, DurationSec, TotalRows, PeakBoostPSI, MinAFR, MaxTimingRetardDeg, KnockCount, DAMEvents, MinDAM, PeakRPM, Verdict</code>.</li>
+        <li><strong>3. Save as CSV:</strong> Exports a 22-column comprehensive spreadsheet row (<code>report_[timestamp].csv</code>) with columns: <code>Timestamp, FileName, TuneMap, DurationSec, TotalRows, PeakBoostPSI, MinAFR, MaxTimingRetardDeg, KnockEvents, DAMEvents, MinDAM, PeakRPM, PeakLoad, MinFuelPressurePSI, MaxOilTempF, MaxCoolantTempF, MaxIAT_F, EthanolPct, PeakIDC_Pct, AFLearn1_Pct, Verdict, Warnings</code>.</li>
       </ul>
 
       <h3>GitHub Version Control Backup</h3>
@@ -586,8 +586,14 @@
         </li>
       </ol>
 
-      <h3>Google Sheets Cloud Integration</h3>
-      <p>You can optionally connect a Google Apps Script Webhook or Google Sheet URL in the <strong>☁️ Sync to Google Sheets</strong> section. When enabled, each generated report automatically dispatches a JSON payload to your webhook. You can also tap <strong>📋 Copy Row Format</strong> to copy a tab-separated row to paste directly into Google Sheets.</p>
+      <h3>Google Sheets Cloud Integration (Webhook &amp; Copy)</h3>
+      <p>You can connect your personal Google Sheet to auto-log every scanned report into a permanent tuning spreadsheet:</p>
+      <ul>
+        <li><strong>1. Create Google Sheet:</strong> Create a sheet and paste the 22 header columns in Row 1.</li>
+        <li><strong>2. Add Apps Script:</strong> Go to <em>Extensions &rarr; Apps Script</em>, add the <code>doPost(e)</code> webhook snippet, and deploy as a Web App (Access: Anyone).</li>
+        <li><strong>3. Connect &amp; Auto-Sync:</strong> Paste the deployment URL into the <strong>☁️ Sync to Google Sheets</strong> box in the Report Generator and check <em>Enable Cloud Auto-Sync</em>.</li>
+        <li><strong>4. 1-Click Clipboard:</strong> Alternatively, tap <strong>📋 Copy Row Format</strong> and press <code>Ctrl+V</code> / <code>Cmd+V</code> directly in your spreadsheet!</li>
+      </ul>
 
       <h3>Example Use Cases</h3>
       <ul>

@@ -617,10 +617,19 @@
         <li><strong>1. Create Google Sheet:</strong> Create a sheet on <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan);">sheets.new</a> and paste the 22 header columns in Row 1.</li>
         <li><strong>2. Add Webhook Apps Script:</strong> Go to <em>Extensions &rarr; Apps Script</em> and paste:
           <pre style="background: #090b16; padding: 10px; border-radius: 6px; border: 1px solid var(--border); color: #00ff66; font-size: 0.8rem; overflow-x: auto; margin-top: 6px;">function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var d = JSON.parse(e.postData.contents);
-  sheet.appendRow([d.timestamp, d.filename, d.tuneName, d.durationSec, d.totalRows, d.peakBoostPsi, d.minAfr, d.maxTimingRetardDeg, d.knockCount, d.damEvents, d.minDam, d.peakRpm, d.peakLoad, d.minFuelPressure, d.maxOilTemp, d.maxCoolantTemp, d.maxIat, d.ethanolPct, d.peakIdc, d.maxLtft, d.verdict, d.warnings]);
-  return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var d = JSON.parse(e.postData.contents);
+    sheet.appendRow([d.timestamp, d.filename, d.tuneName, d.durationSec, d.totalRows, d.peakBoostPsi, d.minAfr, d.maxTimingRetardDeg, d.knockCount, d.damEvents, d.minDam, d.peakRpm, d.peakLoad, d.minFuelPressure, d.maxOilTemp, d.maxCoolantTemp, d.maxIat, d.ethanolPct, d.peakIdc, d.maxLtft, d.verdict, d.warnings]);
+    SpreadsheetApp.flush();
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: err.message})).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
 }</pre>
         </li>
         <li><strong>3. Deploy Web App:</strong> Deploy as Web App (Execute as: <em>Me</em>, Access: <em>Anyone</em>).</li>

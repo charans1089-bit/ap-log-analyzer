@@ -831,6 +831,7 @@
     DOM.btnConnectSheets = document.getElementById('btn-connect-sheets');
     DOM.btnCopySheetsRow = document.getElementById('btn-copy-sheets-row');
     DOM.inputSheetsUrl = document.getElementById('input-sheets-url');
+    DOM.btnToggleSheetsUrl = document.getElementById('btn-toggle-sheets-url');
     DOM.chkSheetsSync = document.getElementById('chk-sheets-sync');
     DOM.sheetsStatus = document.getElementById('sheets-status');
 
@@ -1349,6 +1350,16 @@
     DOM.inputSheetsUrl.value = sheetsCfg.url;
     DOM.chkSheetsSync.checked = sheetsCfg.enabled;
     updateSheetsStatus(sheetsCfg.enabled && sheetsCfg.url);
+
+    if (DOM.btnToggleSheetsUrl) {
+      DOM.btnToggleSheetsUrl.addEventListener('click', () => {
+        SoundFX.click();
+        const currentType = DOM.inputSheetsUrl.getAttribute('type');
+        const newType = currentType === 'password' ? 'text' : 'password';
+        DOM.inputSheetsUrl.setAttribute('type', newType);
+        DOM.btnToggleSheetsUrl.textContent = newType === 'password' ? '👁️' : '🔒';
+      });
+    }
 
     DOM.btnConnectSheets.addEventListener('click', () => {
       SoundFX.click();

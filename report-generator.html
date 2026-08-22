@@ -218,15 +218,18 @@
         <div class="integration-card">
           <div class="integration-header">
             <h4>☁️ SYNC TO GOOGLE SHEETS</h4>
-            <span id="sheets-status" class="integration-status status-disconnected">DISCONNECTED</span>
+            <span id="sheets-status" class="integration-status status-connected">CONNECTED</span>
           </div>
-          <p>Optionally enter your Google Apps Script Webhook or Google Sheet share endpoint to auto-log rows in real-time, or copy a formatted row.</p>
-          <input type="text" id="input-sheets-url" class="input-arcade" placeholder="Paste Webhook URL (https://script.google.com/...)">
+          <p>Cloud sync is pre-configured with your secure webhook. Each analyzed log will automatically append to your Google Sheet, or you can paste a custom webhook URL.</p>
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input type="password" id="input-sheets-url" class="input-arcade" placeholder="•••••••••••••••••••••••••••• (Default Webhook Active)" style="margin-bottom:0;">
+            <button type="button" id="btn-toggle-sheets-url" class="btn-arcade btn-sm btn-icon-only" title="Show / Hide Webhook URL">👁️</button>
+          </div>
           <label style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.8rem; margin-bottom:12px; cursor:pointer;">
-            <input type="checkbox" id="chk-sheets-sync"> Enable Cloud Auto-Sync
+            <input type="checkbox" id="chk-sheets-sync" checked> Enable Cloud Auto-Sync
           </label>
           <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btn-connect-sheets" class="btn-arcade btn-sm btn-green">🔗 SAVE SHEETS URL</button>
+            <button id="btn-connect-sheets" class="btn-arcade btn-sm btn-green">🔗 SAVE SETTINGS</button>
             <button id="btn-copy-sheets-row" class="btn-arcade btn-sm btn-yellow">📋 COPY ROW FORMAT</button>
           </div>
         </div>

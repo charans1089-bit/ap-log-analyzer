@@ -849,6 +849,16 @@
     DOM.toast = document.getElementById('arcade-toast');
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function showToast(msg) {
     if (!DOM.toast) return;
     DOM.toast.textContent = msg;
@@ -874,7 +884,7 @@
       <div>Duration: <span>${report.durationSec.toFixed(2)}s</span></div>
       <div>Rows Analyzed: <span>${report.totalRows}</span></div>
       <div>Generated: <span>${new Date(report.timestamp).toLocaleTimeString()}</span></div>
-      ${report.tuneName ? `<div>Tune: <span>${report.tuneName}</span></div>` : ''}
+      ${report.tuneName ? `<div>Tune: <span>${escapeHtml(report.tuneName)}</span></div>` : ''}
     `;
 
     // Verdict Marquee
@@ -1003,13 +1013,13 @@
         const dateStr = new Date(rep.timestamp).toLocaleString();
         card.innerHTML = `
           <div class="cabinet-card-meta">
-            <div class="cabinet-filename">${rep.filename}</div>
+            <div class="cabinet-filename">${escapeHtml(rep.filename)}</div>
             <div class="cabinet-sub">📅 ${dateStr} · ⏱️ ${rep.durationSec.toFixed(1)}s · 📈 Peak: ${rep.metrics.peakBoostPsi.toFixed(1)} PSI</div>
           </div>
           <div class="cabinet-card-actions">
-            <span class="ticker-badge ${rep.verdict === 'good' ? 'badge-ok' : (rep.verdict === 'watch' ? 'badge-warn' : 'badge-hazard')}">${rep.verdictLabel}</span>
-            <button class="btn-arcade btn-sm btn-view-hist" data-key="${rep.key}">VIEW</button>
-            <button class="btn-arcade btn-red btn-sm btn-del-hist" data-key="${rep.key}" title="Erase Record">ERASE</button>
+            <span class="ticker-badge ${rep.verdict === 'good' ? 'badge-ok' : (rep.verdict === 'watch' ? 'badge-warn' : 'badge-hazard')}">${escapeHtml(rep.verdictLabel)}</span>
+            <button class="btn-arcade btn-sm btn-view-hist" data-key="${escapeHtml(rep.key)}">VIEW</button>
+            <button class="btn-arcade btn-red btn-sm btn-del-hist" data-key="${escapeHtml(rep.key)}" title="Erase Record">ERASE</button>
           </div>
         `;
 
@@ -1084,8 +1094,8 @@
     DOM.compareResults.innerHTML = `
       <div class="compare-grid">
         <div class="compare-column">
-          <div class="compare-col-header">LOG A: ${repA.filename}</div>
-          <div class="compare-stat-row"><span>Verdict</span><strong class="${repA.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${repA.verdictLabel}</strong></div>
+          <div class="compare-col-header">LOG A: ${escapeHtml(repA.filename)}</div>
+          <div class="compare-stat-row"><span>Verdict</span><strong class="${repA.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${escapeHtml(repA.verdictLabel)}</strong></div>
           <div class="compare-stat-row"><span>Peak Boost</span><strong>${repA.metrics.peakBoostPsi.toFixed(1)} PSI</strong></div>
           <div class="compare-stat-row"><span>Min AFR</span><strong>${repA.metrics.minAfr.toFixed(2)}</strong></div>
           <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repA.metrics.maxTimingRetardDeg.toFixed(2)}°</strong></div>
@@ -1094,8 +1104,8 @@
         </div>
 
         <div class="compare-column">
-          <div class="compare-col-header">LOG B: ${repB.filename}</div>
-          <div class="compare-stat-row"><span>Verdict</span><strong class="${repB.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${repB.verdictLabel}</strong></div>
+          <div class="compare-col-header">LOG B: ${escapeHtml(repB.filename)}</div>
+          <div class="compare-stat-row"><span>Verdict</span><strong class="${repB.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${escapeHtml(repB.verdictLabel)}</strong></div>
           <div class="compare-stat-row"><span>Peak Boost</span><strong>${repB.metrics.peakBoostPsi.toFixed(1)} PSI <span class="${deltaBoost >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaBoost >= 0 ? '+' : ''}${deltaBoost.toFixed(1)})</span></strong></div>
           <div class="compare-stat-row"><span>Min AFR</span><strong>${repB.metrics.minAfr.toFixed(2)} <span class="${deltaAfr <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaAfr >= 0 ? '+' : ''}${deltaAfr.toFixed(2)})</span></strong></div>
           <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repB.metrics.maxTimingRetardDeg.toFixed(2)}° <span class="${deltaTiming >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaTiming >= 0 ? '+' : ''}${deltaTiming.toFixed(2)})</span></strong></div>

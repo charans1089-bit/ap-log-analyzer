@@ -630,6 +630,10 @@
   } finally {
     lock.releaseLock();
   }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({status: "alive", message: "AP Datalog Webhook is active!"})).setMimeType(ContentService.MimeType.JSON);
 }</pre>
         </li>
         <li><strong>3. Deploy Web App:</strong> Deploy as Web App (Execute as: <em>Me</em>, Access: <em>Anyone</em>).</li>

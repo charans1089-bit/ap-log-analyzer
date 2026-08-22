@@ -198,7 +198,7 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
   // 5. GOOGLE SHEETS CLOUD INTEGRATION
   const SHEETS_CONFIG_KEY = 'ap_report_generator_sheets_config';
   // Obfuscated Base64 default webhook endpoint for secure cloud sync
-  const _DEFAULT_SHEETS_ENDPOINT_B64 = 'aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J5MUdIdE1DRlEtbzhiSDhlQ0dBeDhwSVF5YWEyM0RERVRNWEpPZ2hHMGlJYm5ySExQRlhBbFI5YjNDVzhyRnBjUDI2dy9leGVj';
+  const _DEFAULT_SHEETS_ENDPOINT_B64 = 'aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J5T0p6Tm9TTG5LTHZ3MXRDT0k1d2dBUF93LWZLa3hHMWtoVS00N01Ub0Z5cnBaYTZZSVY2OEJVcHgzbUhLRFV0aTMvZXhlYw==';
 
   function getDefaultEndpoint() {
     try {

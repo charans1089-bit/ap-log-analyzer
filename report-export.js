@@ -266,17 +266,59 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
         warnings: (report.warnings || []).join('; ')
       };
 
-      // POST to Google Apps Script Webhook / endpoint
+      // POST to Google Apps Script Webhook (text/plain ensures compatibility with iOS Safari / WebKit no-cors requests)
       await fetch(config.url, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
 
       return { success: true };
     } catch (err) {
       console.error('Google Sheets sync error:', err);
+      return { success: false, reason: err.message };
+    }
+  }
+
+  async function testSheetsConnection() {
+    const config = getSheetsConfig();
+    const url = config.url || getDefaultEndpoint();
+    const testPayload = {
+      timestamp: new Date().toLocaleString(),
+      filename: 'TEST_CONNECTION_CHECK.csv',
+      tuneName: 'Connection Check Test',
+      durationSec: '5.00',
+      totalRows: 100,
+      peakBoostPsi: '18.5',
+      minAfr: '11.25',
+      maxTimingRetardDeg: '0.00',
+      knockCount: 0,
+      damEvents: 0,
+      minDam: '1.000',
+      peakRpm: 6000,
+      peakLoad: '2.50',
+      minFuelPressure: 2250,
+      maxOilTemp: 210,
+      maxCoolantTemp: 190,
+      maxIat: 85,
+      ethanolPct: '0.0',
+      peakIdc: '65.0',
+      maxLtft: '0.0',
+      verdict: 'Good tune',
+      warnings: 'Test connection row sent from Report Generator'
+    };
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(testPayload)
+      });
+      return { success: true };
+    } catch (err) {
+      console.error('Test sync error:', err);
       return { success: false, reason: err.message };
     }
   }
@@ -326,6 +368,7 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
     getSheetsConfig,
     saveSheetsConfig,
     syncReportToSheets,
+    testSheetsConnection,
     copySheetsRow,
     getTimestampString
   };

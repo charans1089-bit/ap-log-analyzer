@@ -846,6 +846,7 @@
     // Integrations
     DOM.btnCopyGithub = document.getElementById('btn-copy-github');
     DOM.btnConnectSheets = document.getElementById('btn-connect-sheets');
+    DOM.btnTestSheets = document.getElementById('btn-test-sheets');
     DOM.btnCopySheetsRow = document.getElementById('btn-copy-sheets-row');
     DOM.inputSheetsUrl = document.getElementById('input-sheets-url');
     DOM.btnToggleSheetsUrl = document.getElementById('btn-toggle-sheets-url');
@@ -1431,6 +1432,21 @@
       updateSheetsStatus(enabled && url);
       showToast('☁️ Sheets settings saved!');
     });
+
+    if (DOM.btnTestSheets) {
+      DOM.btnTestSheets.addEventListener('click', async () => {
+        SoundFX.click();
+        showToast('🧪 Sending test payload to Google Sheet...');
+        const res = await ReportExport.testSheetsConnection();
+        if (res.success) {
+          SoundFX.good();
+          showToast('✅ Test row sent! Check your Google Sheet.');
+        } else {
+          SoundFX.warn();
+          showToast('⚠️ Sync error: ' + (res.reason || 'Check webhook URL'));
+        }
+      });
+    }
 
     DOM.btnCopySheetsRow.addEventListener('click', () => {
       SoundFX.click();

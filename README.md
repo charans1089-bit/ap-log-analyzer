@@ -28,10 +28,32 @@ To export logs for analysis:
 ## Column Mapping
 The analyzer reads your CSV header row and automatically maps AP monitors to its internal logic. Column names are matched case-insensitively and unit-tolerantly to the exact FA24 header set, so variations like `RPM(RPM)` vs `rpm (rpm)` are handled gracefully.
 
+## Standalone Datalog Report Generator
+In addition to the main telemetry dashboard, the project includes a standalone **Retro Datalog Report Generator** (`report-generator.html`):
+- **Quick Health Reports:** Instantly parses COBB AccessPort CSV logs and provides a calibration verdict: *Good tune* (🟢), *Watch knock* (🟡), or *Check tune* (🔴).
+- **Metric Extraction:** Computes peak boost, minimum AFR under boost, max timing retard, knock events, and Dynamic Advance Multiplier (DAM) health.
+- **Export Options:** Export reports as **PDF** (formatted tuning summary sheet), **JSON** (schema backup for `/reports/`), or **CSV** (spreadsheet row).
+- **Local Storage:** Stores the last 50 reports locally in browser IndexedDB with a vintage filing cabinet viewer and side-by-side comparison tool.
+- **Retro Arcade Aesthetic:** Complete with CRT scanlines, 80s/90s neon styling, and 8-bit synthesized Web Audio feedback.
+- **Integrations:** Optional GitHub commit instructions and Google Sheets cloud sync.
+
+### Report Generator File Structure
+```
+ap-log-analyzer/
+├── report-generator.html   # Standalone page for datalog report generation
+├── report-generator.js     # Telemetry parsing, verdict rules & IndexedDB storage
+├── report-export.js        # PDF print, JSON, CSV & Google Sheets export engine
+├── report-styles.css       # Retro arcade styling, CRT animations & print styles
+├── CHANGELOG.md            # Release notes and feature changelog
+└── reports/                # (Recommended) Directory for archived JSON reports
+```
+
+For complete documentation, monitor dictionary, and walkthroughs, open `docs.html`.
+
 ## Features Not Built (and Why)
-- **No cloud sync**: Would require user accounts, databases, and compromise the strict zero-upload privacy guarantee.
-- **No AI/ML analysis**: Would require sending log data to an external API (like OpenAI) along with an API key, violating offline/privacy rules.
+- **No central server**: All telemetry processing and IndexedDB storage remain 100% private in your browser.
 - **No fleet comparison**: Comparing your logs to others would require centralizing data on a server, which we intentionally avoid.
 
 ## License
+MIT License
 MIT License

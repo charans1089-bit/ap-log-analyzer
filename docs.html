@@ -248,6 +248,7 @@
       </div>
     </div>
     <div class="header-actions">
+      <a href="report-generator.html" class="btn-secondary" style="text-decoration: none; margin-right: 8px;">📊 Report Generator</a>
       <a href="index.html" class="btn-primary">🏎️ Launch App</a>
     </div>
   </header>
@@ -473,6 +474,168 @@
         <li><strong>Pinch to Zoom:</strong> Use two fingers to pinch in/out directly on the telemetry graphs.</li>
         <li><strong>Touch Zoom Buttons:</strong> Tap <code>🔍+</code> (Zoom In), <code>🔍−</code> (Zoom Out), or <code>⟲ Reset</code> in the top navigation bar for 1-tap graph control.</li>
         <li><strong>WOT Pull Navigation:</strong> Tap any WOT pull pill in the sidebar to auto-zoom straight to that full-throttle run.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 5: STANDALONE DATALOG REPORT GENERATOR -->
+    <section class="docs-section">
+      <h2>📊 Part 5: Standalone Datalog Report Generator</h2>
+      
+      <h3>What is the Report Generator?</h3>
+      <p>The <strong>Datalog Report Generator</strong> is a fast, standalone single-page tool designed to give you an instant executive summary of your COBB AccessPort CSV datalogs. Designed with an authentic 80s/90s arcade CRT aesthetic, it extracts peak boost, minimum AFR, ignition timing corrections, knock events, and Dynamic Advance Multiplier (DAM) health in milliseconds, outputting a clear calibration health verdict.</p>
+      <p>It operates completely client-side in your browser, saving reports to local browser storage (IndexedDB) with zero external cloud dependencies.</p>
+
+      <h3>How to Access</h3>
+      <p>The Report Generator is a completely independent page that does not interfere with the primary telemetry dashboard:</p>
+      <ul>
+        <li>Direct URL: <a href="report-generator.html" style="color: var(--accent-cyan); font-weight: bold;">report-generator.html</a></li>
+        <li>Top navigation button: Tap <strong>📊 Report Generator</strong> in the documentation header bar or launch it directly from any bookmark.</li>
+      </ul>
+
+      <h3>How to Use (Step-by-Step)</h3>
+      <ol>
+        <li><strong>Open the Page:</strong> Navigate to <code>report-generator.html</code>.</li>
+        <li><strong>Upload Your Log:</strong> Drag and drop your COBB AccessPort <code>.csv</code> datalog file into the cassette drop zone, or tap <strong>📁 Browse CSV File</strong>. You can also test the system instantly with <strong>⚡ Try Clean Demo</strong> or <strong>⚡ Try Knock Demo</strong>.</li>
+        <li><strong>Scan & Review:</strong> Tap <strong>🕹️ Scan Log</strong> to parse telemetry. An arcade CRT summary card will render with key metrics, diagnostic warnings, and an out-of-spec event timeline.</li>
+        <li><strong>Export Your Report:</strong> Choose between <strong>💾 Save as PDF</strong> (print-ready tuner calibration sheet), <strong>💾 Save as JSON</strong> (full telemetry schema for repo backup), or <strong>📊 Save as CSV</strong> (spreadsheet summary row).</li>
+        <li><strong>Compare & Manage:</strong> Access previous runs in the <strong>🗄️ Retro Filing Cabinet</strong> or run a side-by-side delta analysis with <strong>📈 Compare</strong>.</li>
+      </ol>
+
+      <h3>Metrics Explained & Safe Operating Ranges</h3>
+      <div class="dict-table-wrap">
+        <table class="dict-table">
+          <thead>
+            <tr>
+              <th>Extracted Metric</th>
+              <th>Channel Mappings</th>
+              <th>Safe Benchmark Range</th>
+              <th>Significance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Peak Boost (PSI)</strong></td>
+              <td><code>Boost (psi)</code>, <code>Boost (Calc)</code>, <code>MAP</code></td>
+              <td><span class="tag-safe">&le; 19.5 &ndash; 21.0 PSI</span> (93/E30)</td>
+              <td>Maximum manifold pressure reached during wide-open throttle.</td>
+            </tr>
+            <tr>
+              <td><strong>Min AFR (Wideband)</strong></td>
+              <td><code>AF Sens 1 Ratio (AFR)</code>, <code>Wideband AFR</code></td>
+              <td><span class="tag-safe">11.00 &ndash; 12.20</span> (under boost)</td>
+              <td>Richest air/fuel mixture under boost. Lean mixtures (&gt;12.5 AFR) risk engine knock.</td>
+            </tr>
+            <tr>
+              <td><strong>Max Timing Retard</strong></td>
+              <td><code>Feedback Knock (°)</code>, <code>Timing Correction</code></td>
+              <td><span class="tag-safe">&ge; -1.00°</span></td>
+              <td>Most aggressive timing subtraction by the ECU in response to cylinder vibration.</td>
+            </tr>
+            <tr>
+              <td><strong>Knock Event Count</strong></td>
+              <td><code>Feedback Knock &lt; 0</code>, <code>Knock Sum &gt; 0</code></td>
+              <td><span class="tag-safe">0 events</span></td>
+              <td>Number of discrete data points where knock correction was active.</td>
+            </tr>
+            <tr>
+              <td><strong>Min DAM (Multiplier)</strong></td>
+              <td><code>Dyn Adv Mult (DAM)</code></td>
+              <td><span class="tag-safe">1.000</span> (&ge; 0.95)</td>
+              <td>Global timing confidence multiplier. Standard baseline is 1.000.</td>
+            </tr>
+            <tr>
+              <td><strong>Session Duration</strong></td>
+              <td><code>Time (sec)</code> delta</td>
+              <td><span class="tag-safe">N/A</span></td>
+              <td>Total logging duration from first recorded timestamp to final row.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Verdict Classification System</h3>
+      <p>The analyzer automatically evaluates all telemetry against Subaru FA24 safety rules:</p>
+      <ul>
+        <li><strong style="color: var(--accent-emerald);">🟢 Good tune:</strong> Knock count is 0, DAM events &lt; 3 (DAM remains &ge; 0.95), AFR remains rich under boost (11.0–12.2), and timing corrections are within safe tolerances (&gt; -1.0°).</li>
+        <li><strong style="color: var(--accent-gold);">🟡 Watch knock:</strong> Minor knock events detected (FBK between -1.0° and -2.8°), or DAM events &ge; 3. Monitor subsequent logs and verify fuel octane.</li>
+        <li><strong class="tag-danger">🔴 Check tune:</strong> Critical engine safety threshold exceeded (e.g. lean AFR &gt; 12.5 under boost, severe timing retard &le; -1.5°/ -4.0°, or DAM drop below 0.85). Cease hard driving and consult your tuner.</li>
+      </ul>
+
+      <h3>Local Storage (IndexedDB Architecture)</h3>
+      <p>Reports are saved locally in your browser's private IndexedDB database (<code>APReportGeneratorDB</code>):</p>
+      <ul>
+        <li><strong>Capacity:</strong> Stores up to the last <strong>50 reports</strong>. Older reports are automatically pruned when new logs are added.</li>
+        <li><strong>Filing Cabinet:</strong> Tap <strong>📚 History</strong> to open the retro drawer, search past logs, reload historical reports, or delete single entries.</li>
+        <li><strong>Privacy:</strong> No telemetry is uploaded to external web servers.</li>
+      </ul>
+
+      <h3>Export Options</h3>
+      <ul>
+        <li><strong>1. Save as PDF:</strong> Formatted via a clean print stylesheet. Browser automatically suggests <code>SCRK_Report_[YYYY-MM-DD_HH-MM-SS].pdf</code> for tuner review.</li>
+        <li><strong>2. Save as JSON:</strong> Complete structured report file including metadata, metrics, warnings, and out-of-spec moments for repository backups (<code>report_[timestamp].json</code>).</li>
+        <li><strong>3. Save as CSV:</strong> Exports a spreadsheet summary row (<code>report_[timestamp].csv</code>) with columns: <code>Timestamp, FileName, DurationSec, TotalRows, PeakBoostPSI, MinAFR, MaxTimingRetardDeg, KnockCount, DAMEvents, MinDAM, PeakRPM, Verdict</code>.</li>
+      </ul>
+
+      <h3>GitHub Version Control Backup</h3>
+      <ol>
+        <li>Click <strong>💾 Save as JSON</strong> to download the telemetry report.</li>
+        <li>Clone your repository: <code>git clone https://github.com/&lt;your-username&gt;/ap-log-analyzer.git</code></li>
+        <li>Copy the JSON report into the <code>/reports/</code> directory.</li>
+        <li>Commit and push to maintain a permanent version-controlled tuning diary:
+          <pre style="background: #090b16; padding: 12px; border-radius: 6px; border: 1px solid var(--border); color: var(--accent-cyan); margin-top: 6px; overflow-x: auto;">git add reports/ &amp;&amp; git commit -m "Add datalog health report" &amp;&amp; git push</pre>
+        </li>
+      </ol>
+
+      <h3>Google Sheets Cloud Integration</h3>
+      <p>You can optionally connect a Google Apps Script Webhook or Google Sheet URL in the <strong>☁️ Sync to Google Sheets</strong> section. When enabled, each generated report automatically dispatches a JSON payload to your webhook. You can also tap <strong>📋 Copy Row Format</strong> to copy a tab-separated row to paste directly into Google Sheets.</p>
+
+      <h3>Example Use Cases</h3>
+      <ul>
+        <li><strong>After Every Track Day:</strong> Drop your AccessPort CSV into the generator to verify DAM stayed at 1.000 and oil temperatures remained safe.</li>
+        <li><strong>Compare Tune Revisions:</strong> Use the <strong>📈 Compare</strong> tool to review Log A vs Log B before and after installing bolt-on parts or updating ECU maps.</li>
+        <li><strong>Tuner Collaboration:</strong> Export clean PDF reports to email directly to your calibrator.</li>
+        <li><strong>Version History:</strong> Store JSON reports in GitHub to track telemetry across different seasons and ambient temperatures.</li>
+      </ul>
+
+      <h3>Features & Limitations</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
+        <div style="background: rgba(0, 255, 102, 0.05); border: 1px solid rgba(0, 255, 102, 0.2); border-radius: 6px; padding: 14px;">
+          <h4 style="color: var(--accent-emerald); margin-bottom: 8px;">✨ Features</h4>
+          <ul style="padding-left: 18px; margin: 0;">
+            <li>Instant client-side CSV parsing & verdict calculation</li>
+            <li>Multiple export options (PDF, JSON, CSV)</li>
+            <li>Local-first privacy with IndexedDB storage</li>
+            <li>Interactive 80s/90s arcade theme with CRT effects & 8-bit audio</li>
+            <li>Side-by-side comparison & filing cabinet history</li>
+          </ul>
+        </div>
+        <div style="background: rgba(255, 230, 0, 0.05); border: 1px solid rgba(255, 230, 0, 0.2); border-radius: 6px; padding: 14px;">
+          <h4 style="color: var(--accent-gold); margin-bottom: 8px;">⚠️ Limitations</h4>
+          <ul style="padding-left: 18px; margin: 0;">
+            <li>IndexedDB storage is per-browser (clearing browser cache clears history)</li>
+            <li>Maximum 50 stored reports in local history</li>
+            <li>Google Sheets sync requires a webhook endpoint</li>
+            <li>Client-side analysis only; no external server database</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>File Structure</h3>
+      <pre style="background: #090b16; padding: 14px; border-radius: 6px; border: 1px solid var(--border); color: #fff; font-family: var(--font-mono); margin-top: 12px; overflow-x: auto;">
+ap-log-analyzer/
+├── report-generator.html   # Standalone retro report generator web page
+├── report-generator.js     # Parser, metrics, verdict logic & IndexedDB manager
+├── report-export.js        # PDF print, JSON, CSV & Cloud export engine
+├── report-styles.css       # CRT scanlines, arcade palette & print stylesheet
+├── CHANGELOG.md            # Release notes and feature history
+└── reports/                # (Recommended) Directory for archived JSON reports</pre>
+
+      <h3>FAQ & Troubleshooting</h3>
+      <ul>
+        <li><strong>Why is local storage limited to 50 reports?</strong> To maintain optimal browser performance and prevent IndexedDB bloat. Older reports are auto-pruned, so export important runs as JSON or PDF.</li>
+        <li><strong>Can I use the Report Generator on iPhone or Android?</strong> Yes, the interface is fully responsive with touch-optimized controls and offline capability.</li>
+        <li><strong>What happens if I clear browser cache?</strong> Reports stored in IndexedDB will be erased. Be sure to export your reports as JSON or PDF if you want permanent archives.</li>
+        <li><strong>Does it modify my original CSV file?</strong> No, file reading is strictly read-only within the browser sandbox.</li>
       </ul>
     </section>
 

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090a10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Report Generator">
+  <meta name="format-detection" content="telephone=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; frame-src 'self' https://w.soundcloud.com https://soundcloud.com; connect-src 'self' data: https:; media-src 'self' data: blob: https:;">
+  <title>📊 Datalog Report Generator · Cobb AccessPort Health Calibration</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="report-styles.css">
+</head>
+<body class="retro-mode">
+
+  <!-- RETRO ARCADE TOP NAVIGATION -->
+  <header class="arcade-header">
+    <div class="header-brand">
+      <span class="cassette-icon">📼</span>
+      <div class="title-group">
+        <h1>📊 DATALOG REPORT GENERATOR</h1>
+        <p>Upload an AP log to generate a summary report</p>
+      </div>
+    </div>
+
+    <!-- MINI MUSIC CONTROLLER -->
+    <div class="header-music-pill" id="header-music-pill">
+      <div class="music-eq-visualizer" id="music-eq-visualizer">
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+        <div class="eq-bar"></div>
+      </div>
+      <button id="btn-play-bgm" class="btn-arcade btn-sm btn-icon-only" title="Play/Pause Background Music" style="padding: 4px 8px; font-size: 0.75rem;">▶️</button>
+      <span class="music-track-name" id="music-track-name">Cyber Turbo FA24</span>
+      <button id="btn-open-radio" class="btn-arcade btn-sm btn-pink" style="padding: 4px 8px; font-size: 0.58rem;">📻 RADIO</button>
+    </div>
+
+    <div class="header-controls">
+      <a href="index.html" class="btn-arcade btn-sm" id="btn-back-analyzer">← BACK TO ANALYZER</a>
+      <a href="docs.html" class="btn-arcade btn-sm btn-yellow">📖 DOCS</a>
+      <button id="btn-history" class="btn-arcade btn-sm btn-pink">📚 HISTORY</button>
+      <button id="btn-compare" class="btn-arcade btn-sm">📈 COMPARE</button>
+      <button id="btn-sound-toggle" class="btn-arcade btn-sm btn-icon-only" title="Toggle 8-Bit Audio SFX">🔊 SFX ON</button>
+      <button id="btn-retro-toggle" class="btn-arcade btn-sm btn-icon-only" title="Toggle CRT Effects">📺 RETRO CRT</button>
+    </div>
+  </header>
+
+  <!-- MAIN GENERATOR CONTENT -->
+  <main class="generator-container">
+
+    <!-- CASSETTE / FLOPPY DROP ZONE -->
+    <section class="retro-deck-wrapper" id="drop-zone">
+      <div class="deck-screws">
+        <span>+</span>
+        <span>+</span>
+        <span>+</span>
+        <span>+</span>
+      </div>
+      <div class="deck-content">
+        <div class="floppy-badge">💾</div>
+        <h2 class="deck-title">INSERT COBB AP DATALOG TAPE</h2>
+        <p class="deck-sub">Drag & Drop AccessPort <code>.csv</code> file or browse your device</p>
+        
+        <div class="deck-actions">
+          <button id="btn-file-pick" class="btn-arcade btn-green">📁 BROWSE CSV FILE</button>
+          <button id="btn-scan" class="btn-arcade btn-pink">🕹️ SCAN LOG</button>
+          <button id="btn-demo-clean" class="btn-arcade btn-yellow btn-sm">⚡ TRY CLEAN DEMO</button>
+          <button id="btn-demo-knock" class="btn-arcade btn-red btn-sm">⚡ TRY KNOCK DEMO</button>
+        </div>
+        <input type="file" id="file-input" accept=".csv,text/csv,text/comma-separated-values" class="visually-hidden">
+      </div>
+    </section>
+
+    <!-- TERMINAL LOGGER PROMPT -->
+    <div class="terminal-logger" id="terminal-logger">
+      <span class="terminal-prompt">&gt;</span>
+      <span id="terminal-msg">SYSTEM READY. DROP COBB AP CSV LOG TO COMMENCE HEALTH SCAN.</span>
+      <span class="terminal-cursor"></span>
+    </div>
+
+    <!-- CRT REPORT SCREEN (Rendered upon parse) -->
+    <section id="report-area" class="crt-screen-frame hidden">
+      
+      <!-- LOG METADATA STRIP -->
+      <div class="crt-header-strip">
+        <div class="log-meta-group">
+          <h3 id="report-filename">datalog_sample.csv</h3>
+          <div class="log-meta-details" id="report-meta-details">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- VERDICT ARCADE MARQUEE -->
+      <div class="verdict-marquee-wrapper">
+        <div id="verdict-marquee" class="verdict-marquee verdict-good">
+          <span class="sub-tag" id="verdict-tag">★ CALIBRATION SAFE ★</span>
+          <span class="main-verdict" id="verdict-text">Good tune</span>
+        </div>
+      </div>
+
+      <!-- KEY METRICS HUD GRID -->
+      <div class="metrics-hud-grid">
+        
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span class="hud-label">Peak Boost</span>
+            <span class="hud-icon">🚀</span>
+          </div>
+          <div class="hud-value" id="hud-peak-boost">0.0 PSI</div>
+          <div class="hud-target">Safe target: &le; 20.0 PSI</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span class="hud-label">Min AFR (Wideband)</span>
+            <span class="hud-icon">⛽</span>
+          </div>
+          <div class="hud-value" id="hud-min-afr">14.70:1</div>
+          <div class="hud-target">Target: 11.00 &ndash; 13.50</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span class="hud-label">Max Timing Retard</span>
+            <span class="hud-icon">⏱️</span>
+          </div>
+          <div class="hud-value" id="hud-timing-retard">0.00&deg;</div>
+          <div class="hud-target">Target: &ge; -1.00&deg;</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span class="hud-label">Knock Events</span>
+            <span class="hud-icon">💥</span>
+          </div>
+          <div class="hud-value" id="hud-knock-count">0 EVENTS</div>
+          <div class="hud-target">Target: 0 events</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span class="hud-label">Min DAM (Multiplier)</span>
+            <span class="hud-icon">🛡️</span>
+          </div>
+          <div class="hud-value" id="hud-dam-events">1.000</div>
+          <div class="hud-target">Target: 1.000 (&ge; 0.95)</div>
+        </div>
+
+        <div class="hud-card">
+          <div class="hud-card-header">
+            <span class="hud-label">Peak Engine Speed</span>
+            <span class="hud-icon">⚡</span>
+          </div>
+          <div class="hud-value" id="hud-peak-rpm">0 RPM</div>
+          <div class="hud-target">Redline: 6,500 RPM</div>
+        </div>
+
+      </div>
+
+      <!-- WARNINGS TICKER TAPE -->
+      <h3 class="section-retro-title"><span>⚠️</span> DIAGNOSTIC OBSERVATIONS</h3>
+      <div class="ticker-tape-container" id="warnings-ticker">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- OUT-OF-SPEC MOMENTS TABLE -->
+      <div id="out-of-spec-wrapper">
+        <h3 class="section-retro-title"><span>🔍</span> OUT-OF-SPEC TELEMETRY TIMELINE</h3>
+        <div class="events-table-wrapper">
+          <table class="retro-table">
+            <thead>
+              <tr>
+                <th>Time (sec)</th>
+                <th>Channel / Parameter</th>
+                <th>Observed Value</th>
+                <th>Safe Range</th>
+                <th>Diagnosis Note</th>
+              </tr>
+            </thead>
+            <tbody id="out-of-spec-table-body">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- EXPORT ACTIONS BAR -->
+      <div class="export-bar">
+        <div class="export-label">
+          <span>💾</span> REPORT EXPORT ACTIONS:
+        </div>
+        <div class="export-btns-group">
+          <button id="btn-export-pdf" class="btn-arcade btn-green">💾 SAVE AS PDF</button>
+          <button id="btn-export-json" class="btn-arcade btn-pink">💾 SAVE AS JSON</button>
+          <button id="btn-export-csv" class="btn-arcade btn-yellow">📊 SAVE AS CSV</button>
+        </div>
+      </div>
+
+      <!-- INTEGRATIONS (GITHUB & GOOGLE SHEETS) -->
+      <div class="integrations-grid">
+        
+        <!-- GITHUB INTEGRATION -->
+        <div class="integration-card">
+          <div class="integration-header">
+            <h4>🔧 BACKUP TO GITHUB</h4>
+            <span class="integration-status status-connected">READY</span>
+          </div>
+          <p>Download the JSON telemetry report and commit it directly to your repository's <code>/reports/</code> directory for version-controlled tuning history.</p>
+          <div class="code-snippet-box">git add reports/ &amp;&amp; git commit -m "Add health report" &amp;&amp; git push</div>
+          <button id="btn-copy-github" class="btn-arcade btn-sm">📋 COPY GITHUB INSTRUCTIONS</button>
+        </div>
+
+        <!-- GOOGLE SHEETS INTEGRATION -->
+        <div class="integration-card">
+          <div class="integration-header">
+            <h4>☁️ SYNC TO GOOGLE SHEETS</h4>
+            <span id="sheets-status" class="integration-status status-disconnected">DISCONNECTED</span>
+          </div>
+          <p>Optionally enter your Google Apps Script Webhook or Google Sheet share endpoint to auto-log rows in real-time, or copy a formatted row.</p>
+          <input type="text" id="input-sheets-url" class="input-arcade" placeholder="Paste Webhook URL (https://script.google.com/...)">
+          <label style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.8rem; margin-bottom:12px; cursor:pointer;">
+            <input type="checkbox" id="chk-sheets-sync"> Enable Cloud Auto-Sync
+          </label>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="btn-connect-sheets" class="btn-arcade btn-sm btn-green">🔗 SAVE SHEETS URL</button>
+            <button id="btn-copy-sheets-row" class="btn-arcade btn-sm btn-yellow">📋 COPY ROW FORMAT</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECONDARY ACTIONS -->
+      <div class="secondary-actions-bar">
+        <button id="btn-reset-view" class="btn-arcade btn-pink">🔄 ANALYZE ANOTHER LOG</button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: RETRO FILING CABINET (REPORT HISTORY) -->
+  <div class="modal-backdrop" id="history-modal">
+    <div class="filing-cabinet-window">
+      <div class="cabinet-header">
+        <span class="cabinet-title">🗄️ RETRO FILING CABINET &middot; SAVED REPORTS (MAX 50)</span>
+        <button class="btn-arcade btn-sm" id="btn-close-history">✕ CLOSE</button>
+      </div>
+      <div class="cabinet-body">
+        <div class="cabinet-list" id="history-list">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+      <div style="padding:14px 20px; background:#101324; border-top:1px solid #232b4d; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-dim);">Stored locally in browser IndexedDB.</span>
+        <button id="btn-clear-history" class="btn-arcade btn-red btn-sm">🗑️ CLEAR ALL HISTORY</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SIDE-BY-SIDE REPORT COMPARISON -->
+  <div class="modal-backdrop" id="compare-modal">
+    <div class="comparison-window">
+      <div class="cabinet-header" style="border-bottom-color:var(--neon-cyan);">
+        <span class="cabinet-title" style="color:var(--neon-cyan);">📈 SIDE-BY-SIDE REPORT COMPARISON</span>
+        <button class="btn-arcade btn-sm" id="btn-close-compare">✕ CLOSE</button>
+      </div>
+      <div class="cabinet-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+          <div>
+            <label style="font-family:var(--font-mono); font-size:0.8rem; color:var(--neon-cyan); display:block; margin-bottom:6px;">SELECT LOG A (Baseline):</label>
+            <select id="compare-select-a" class="input-arcade"></select>
+          </div>
+          <div>
+            <label style="font-family:var(--font-mono); font-size:0.8rem; color:var(--neon-cyan); display:block; margin-bottom:6px;">SELECT LOG B (Comparison):</label>
+            <select id="compare-select-b" class="input-arcade"></select>
+          </div>
+        </div>
+        <div id="compare-results">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RETRO BOOMBOX & SOUNDCLOUD RADIO -->
+  <div class="modal-backdrop" id="boombox-modal">
+    <div class="boombox-window">
+      <div class="boombox-header">
+        <span class="cabinet-title" style="color:var(--neon-pink);">📻 RETRO BOOMBOX &amp; SOUNDCLOUD RADIO</span>
+        <button class="btn-arcade btn-sm" id="btn-close-boombox">✕ CLOSE</button>
+      </div>
+      <div class="cabinet-body">
+        
+        <!-- Animated Cassette Deck -->
+        <div class="boombox-deck" id="boombox-deck">
+          <div class="tape-reel-wrap">
+            <div class="tape-reel"><span>⚙️</span></div>
+            <div style="font-family:var(--font-pixel); font-size:0.7rem; color:var(--neon-cyan); text-align:center;">
+              <div>STEREO CASSETTE</div>
+              <div style="font-size:0.55rem; color:var(--neon-yellow); margin-top:4px;">AUTO-REVERSE · DOLBY B-NR</div>
+            </div>
+            <div class="tape-reel"><span>⚙️</span></div>
+          </div>
+        </div>
+
+        <!-- Mode Tabs -->
+        <div class="music-tabs-nav">
+          <button id="tab-chiptune" class="tab-btn-radio active">⚡ 8-BIT CHIPTUNE SYNTH (OFFLINE)</button>
+          <button id="tab-soundcloud" class="tab-btn-radio">☁️ SOUNDCLOUD STREAM</button>
+        </div>
+
+        <!-- Chiptune Synthesizer Pane -->
+        <div id="chiptune-pane">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-dim);">SELECT CHIPTUNE TAPE:</span>
+            <div style="display:flex; gap:8px;">
+              <button id="btn-modal-play-bgm" class="btn-arcade btn-green btn-sm">▶️ PLAY 8-BIT BGM</button>
+              <button id="btn-modal-next-track" class="btn-arcade btn-yellow btn-sm">⏭️ NEXT TRACK</button>
+            </div>
+          </div>
+
+          <div class="radio-presets-list">
+            <div class="preset-track-card chiptune-track-card active-track" data-track-idx="0">
+              <div>
+                <div class="track-meta-title">🏎️ Track 1: Cyber Turbo FA24</div>
+                <div class="track-meta-genre">Synthwave Chiptune · 128 BPM · Dynamic Arpeggios</div>
+              </div>
+              <span class="ticker-badge badge-ok">LOADED</span>
+            </div>
+
+            <div class="preset-track-card chiptune-track-card" data-track-idx="1">
+              <div>
+                <div class="track-meta-title">🌃 Track 2: Midnight Outrun Cruise</div>
+                <div class="track-meta-genre">80s Retrowave · 110 BPM · Chill Night Drive</div>
+              </div>
+              <span class="ticker-badge badge-warn">READY</span>
+            </div>
+
+            <div class="preset-track-card chiptune-track-card" data-track-idx="2">
+              <div>
+                <div class="track-meta-title">🏆 Track 3: Arcade Stage Clear</div>
+                <div class="track-meta-genre">Classic 8-Bit Arcade · 140 BPM · Victory Fanfare</div>
+              </div>
+              <span class="ticker-badge badge-warn">READY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SoundCloud Radio Pane -->
+        <div id="soundcloud-pane" class="hidden">
+          <p style="font-family:var(--font-mono); font-size:0.8rem; color:var(--neon-cyan); margin-bottom:10px;">
+            Stream free Creative Commons Synthwave &amp; Chiptune music directly from SoundCloud:
+          </p>
+
+          <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+            <button class="btn-arcade btn-sm btn-sc-preset" data-sc-url="https://soundcloud.com/synthwave-radio/sets/retrowave-outrun-chillwave">🔥 Free Synthwave Mix</button>
+            <button class="btn-arcade btn-sm btn-yellow btn-sc-preset" data-sc-url="https://soundcloud.com/user-558299863/sets/chiptune-8-bit-video-game">🕹️ 8-Bit Arcade Gems</button>
+            <button class="btn-arcade btn-sm btn-pink btn-sc-preset" data-sc-url="https://soundcloud.com/neon-nights/sets/synthwave-cyberpunk">🏎️ Turbo Drift Cyberpunk</button>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input type="text" id="input-soundcloud-url" class="input-arcade" placeholder="Paste any SoundCloud Track or Playlist URL..." style="margin-bottom:0;">
+            <button id="btn-load-soundcloud" class="btn-arcade btn-sm btn-pink" style="flex-shrink:0;">▶️ LOAD</button>
+          </div>
+
+          <div class="soundcloud-embed-box">
+            <iframe id="soundcloud-iframe" width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay"
+              src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/synthwave-radio/sets/retrowave-outrun-chillwave&amp;color=%23ff007f&amp;auto_play=false&amp;hide_related=true&amp;show_comments=false&amp;show_user=true&amp;show_reposts=false&amp;show_teaser=false">
+            </iframe>
+          </div>
+        </div>
+
+        <!-- Master Volume Control -->
+        <div class="volume-control-wrap">
+          <span>🔊 VOLUME:</span>
+          <input type="range" id="bgm-volume-slider" class="slider-arcade" min="0" max="100" value="35">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="arcade-toast" class="arcade-toast">💾 Report saved to local history!</div>
+
+  <!-- SCRIPTS -->
+  <script src="report-export.js"></script>
+  <script src="report-generator.js"></script>
+
+</body>
+</html>
+

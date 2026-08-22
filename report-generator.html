@@ -271,6 +271,15 @@
             <button id="btn-test-sheets" class="btn-arcade btn-sm btn-pink">🧪 TEST SYNC</button>
             <button id="btn-copy-sheets-row" class="btn-arcade btn-sm btn-yellow">📋 COPY ROW FORMAT</button>
           </div>
+
+          <!-- SYNC DIAGNOSTICS & STATUS LOG -->
+          <div class="sync-log-box" id="sync-log-box" style="margin-top:14px; background:#080a14; border:1px solid #232b4d; border-radius:4px; padding:10px; font-family:var(--font-mono); font-size:0.75rem; color:#a4b3e6; max-height:120px; overflow-y:auto; text-align:left;">
+            <div style="color:var(--neon-cyan); margin-bottom:4px; font-weight:bold; display:flex; justify-content:space-between;">
+              <span>📡 CLOUD SYNC ACTIVITY LOG:</span>
+              <span id="sync-log-clear" style="cursor:pointer; color:var(--text-dim); text-decoration:underline;">clear</span>
+            </div>
+            <div id="sync-log-content">Ready. Tap "🧪 TEST SYNC" or scan a log to view live sync transmission.</div>
+          </div>
         </div>
 
       </div>

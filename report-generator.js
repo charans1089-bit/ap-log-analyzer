@@ -852,6 +852,8 @@
     DOM.btnToggleSheetsUrl = document.getElementById('btn-toggle-sheets-url');
     DOM.chkSheetsSync = document.getElementById('chk-sheets-sync');
     DOM.sheetsStatus = document.getElementById('sheets-status');
+    DOM.syncLogContent = document.getElementById('sync-log-content');
+    DOM.syncLogClear = document.getElementById('sync-log-clear');
 
     // Modals
     DOM.historyModal = document.getElementById('history-modal');
@@ -865,6 +867,16 @@
     DOM.compareResults = document.getElementById('compare-results');
 
     DOM.toast = document.getElementById('arcade-toast');
+  }
+
+  function logSyncActivity(msg) {
+    if (!DOM.syncLogContent) return;
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.style.marginBottom = '3px';
+    line.innerHTML = `<span style="color:var(--text-dim); font-size:0.7rem;">[${time}]</span> ${escapeHtml(msg)}`;
+    DOM.syncLogContent.appendChild(line);
+    DOM.syncLogContent.scrollTop = DOM.syncLogContent.scrollHeight;
   }
 
   function escapeHtml(str) {
@@ -979,7 +991,7 @@
     DOM.reportArea.scrollIntoView({ behavior: 'smooth' });
 
     // Cloud sync check if enabled
-    ReportExport.syncReportToSheets(report).then(res => {
+    ReportExport.syncReportToSheets(report, logSyncActivity).then(res => {
       if (res.success) {
         showToast('☁️ Auto-synced to Google Sheet!');
       }
@@ -1430,20 +1442,30 @@
       const enabled = DOM.chkSheetsSync.checked;
       ReportExport.saveSheetsConfig(url, enabled);
       updateSheetsStatus(enabled && url);
+      logSyncActivity(`⚙️ Settings saved. Auto-sync: ${enabled ? 'ENABLED' : 'DISABLED'}`);
       showToast('☁️ Sheets settings saved!');
     });
 
     if (DOM.btnTestSheets) {
       DOM.btnTestSheets.addEventListener('click', async () => {
         SoundFX.click();
+        logSyncActivity('🧪 Test sync triggered by user...');
         showToast('🧪 Sending test payload to Google Sheet...');
-        const res = await ReportExport.testSheetsConnection();
+        const res = await ReportExport.testSheetsConnection(logSyncActivity);
         if (res.success) {
           SoundFX.good();
           showToast('✅ Test row sent! Check your Google Sheet.');
         } else {
           SoundFX.warn();
           showToast('⚠️ Sync error: ' + (res.reason || 'Check webhook URL'));
+        }
+      });
+    }
+
+    if (DOM.syncLogClear) {
+      DOM.syncLogClear.addEventListener('click', () => {
+        if (DOM.syncLogContent) {
+          DOM.syncLogContent.innerHTML = '<div style="color:var(--text-dim);">Log cleared. Ready for next sync attempt.</div>';
         }
       });
     }

@@ -233,9 +233,15 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
     }
   }
 
-  async function syncReportToSheets(report) {
+  async function syncReportToSheets(report, logFn) {
+    const log = (msg) => {
+      console.log('[SheetsSync]', msg);
+      if (typeof logFn === 'function') logFn(msg);
+    };
+
     const config = getSheetsConfig();
     if (!config.enabled || !config.url) {
+      log('⚠️ Sheets sync is disabled or URL not configured');
       return { success: false, reason: 'Sheets sync is disabled or URL not configured' };
     }
 
@@ -266,6 +272,9 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
         warnings: (report.warnings || []).join('; ')
       };
 
+      const maskedUrl = config.url.substring(0, 35) + '.../exec';
+      log(`🌐 Dispatching 22 telemetry metrics to: ${maskedUrl}`);
+
       // POST to Google Apps Script Webhook (text/plain ensures compatibility with iOS Safari / WebKit no-cors requests)
       await fetch(config.url, {
         method: 'POST',
@@ -274,16 +283,26 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
         body: JSON.stringify(payload)
       });
 
+      log(`✅ Payload dispatched to endpoint`);
       return { success: true };
     } catch (err) {
+      log(`❌ Network sync error: ${err.message}`);
       console.error('Google Sheets sync error:', err);
       return { success: false, reason: err.message };
     }
   }
 
-  async function testSheetsConnection() {
+  async function testSheetsConnection(logFn) {
+    const log = (msg) => {
+      console.log('[SheetsTest]', msg);
+      if (typeof logFn === 'function') logFn(msg);
+    };
+
     const config = getSheetsConfig();
     const url = config.url || getDefaultEndpoint();
+    const maskedUrl = url.substring(0, 35) + '.../exec';
+    log(`🌐 Starting test transmission to: ${maskedUrl}`);
+
     const testPayload = {
       timestamp: new Date().toLocaleString(),
       filename: 'TEST_CONNECTION_CHECK.csv',
@@ -310,14 +329,17 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
     };
 
     try {
+      log(`📤 Transmitting test row...`);
       await fetch(url, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(testPayload)
       });
+      log(`✅ Test payload dispatched! Check row in Google Sheet.`);
       return { success: true };
     } catch (err) {
+      log(`❌ Connection test failed: ${err.message}`);
       console.error('Test sync error:', err);
       return { success: false, reason: err.message };
     }

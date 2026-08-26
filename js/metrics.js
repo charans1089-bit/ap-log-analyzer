@@ -8,89 +8,131 @@ function computeMetrics(session) {
     return session;
   }
 
-  // Detect pulls
+  // ────────────────────────────────────────────────────────────────────
+  // STATE CLASSIFICATION - Foundation for new pull detection
+  // ────────────────────────────────────────────────────────────────────
+  const states = window.StateClassifier ? window.StateClassifier.classifyAllRows(rows) : [];
+  session._states = states;
+
+  // ────────────────────────────────────────────────────────────────────
+  // DETECT PULLS - New state-based definition
+  // A WOT pull = contiguous SPOOL → WOT_STEADY, minimum 1.0 s in WOT_STEADY,
+  // RPM rising monotonically ≥ 800 RPM.
+  // ────────────────────────────────────────────────────────────────────
   const pulls = [];
   let inPull = false;
   let pullStartIdx = -1;
+  let wotSteadyStartIdx = -1;
 
   for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const throttle = row.throttle_pos;
-    const boost = row.boost;
-    const rpm = row.rpm;
+    const state = states[i] || 'UNKNOWN';
+    const SPOOL = window.StateClassifier?.STATES?.SPOOL || 'SPOOL';
+    const WOT_STEADY = window.StateClassifier?.STATES?.WOT_STEADY || 'WOT_STEADY';
 
-    const isHighThrottle = throttle > 90;
-    const isPositiveBoost = boost > 0;
-    const isHighRpm = rpm >= 2500;
+    if (!inPull && state === SPOOL) {
+      // Start of potential pull
+      inPull = true;
+      pullStartIdx = i;
+      wotSteadyStartIdx = -1;
+    }
 
-    if (!inPull) {
-      if (isHighThrottle && isPositiveBoost && isHighRpm) {
-        inPull = true;
-        pullStartIdx = i;
-      }
-    } else {
-      // End conditions: throttle drops below 85, boost drops <= 0
-      const endConditionsMet = throttle < 85 || boost <= 0;
-      
-      // Additional RPM peak drop check could be added here, but evaluating post-hoc is easier
-      if (endConditionsMet || i === rows.length - 1) {
-        // Evaluate pull
-        const endIdx = i - (endConditionsMet ? 1 : 0);
-        if (endIdx > pullStartIdx) {
-          const duration = rows[endIdx].time - rows[pullStartIdx].time;
-          const startRpm = rows[pullStartIdx].rpm;
-          
+    if (inPull && state === WOT_STEADY && wotSteadyStartIdx === -1) {
+      // Transitioned into WOT_STEADY
+      wotSteadyStartIdx = i;
+    }
+
+    if (inPull && state !== SPOOL && state !== WOT_STEADY) {
+      // Pull ended
+      if (wotSteadyStartIdx !== -1) {
+        // Had SPOOL → WOT_STEADY transition; validate
+        const endIdx = i - 1;
+        const duration = rows[endIdx].time - rows[wotSteadyStartIdx].time;
+        const rpmStart = rows[pullStartIdx].rpm || 0;
+        const rpmEnd = rows[endIdx].rpm || 0;
+        const rpmSpan = rpmEnd - rpmStart;
+
+        // Validate: WOT_STEADY ≥ 1.0 s and RPM ≥ 800 span
+        if (duration >= 1.0 && rpmSpan >= 800) {
           let peakRpm = -Infinity;
           let peakBoost = -Infinity;
           let peakLoad = -Infinity;
-          
+          let gear = null;
+
           for (let p = pullStartIdx; p <= endIdx; p++) {
-            if (rows[p].rpm > peakRpm) peakRpm = rows[p].rpm;
-            if (rows[p].boost > peakBoost) peakBoost = rows[p].boost;
-            if (rows[p].calc_load > peakLoad) peakLoad = rows[p].calc_load;
+            if (Number.isFinite(rows[p].rpm) && rows[p].rpm > peakRpm) peakRpm = rows[p].rpm;
+            if (Number.isFinite(rows[p].boost) && rows[p].boost > peakBoost) peakBoost = rows[p].boost;
+            if (Number.isFinite(rows[p].calc_load) && rows[p].calc_load > peakLoad) peakLoad = rows[p].calc_load;
+            if (!gear && Number.isFinite(rows[p].gear)) gear = Math.round(rows[p].gear);
           }
 
-          if (duration >= 0.5 && (peakRpm - startRpm) >= 500) {
-            pulls.push({
-              index: pulls.length + 1,
-              startIdx: pullStartIdx,
-              endIdx: endIdx,
-              startTime: rows[pullStartIdx].time,
-              endTime: rows[endIdx].time,
-              durationSec: duration,
-              startRpm,
-              peakRpm,
-              peakBoost,
-              peakLoad
-            });
-          }
+          pulls.push({
+            index: pulls.length + 1,
+            startIdx: pullStartIdx,
+            endIdx: endIdx,
+            startTime: rows[pullStartIdx].time,
+            endTime: rows[endIdx].time,
+            durationSec: endIdx - pullStartIdx > 0 ? rows[endIdx].time - rows[pullStartIdx].time : 0,
+            wotSteadyStartIdx,
+            wotSteadyDuration: duration,
+            startRpm: rpmStart,
+            endRpm: rpmEnd,
+            rpmSpan,
+            peakRpm,
+            peakBoost,
+            peakLoad,
+            gear: gear || 0
+          });
         }
-        
-        inPull = false;
-        pullStartIdx = -1;
       }
+
+      inPull = false;
+      pullStartIdx = -1;
+      wotSteadyStartIdx = -1;
     }
   }
 
-  // Refine RPM drop within pull detection
-  // We can filter pulls where RPM peaks and drops by more than 500 before end of pull, truncating them.
-  pulls.forEach(pull => {
-    let currentMax = -Infinity;
-    for (let p = pull.startIdx; p <= pull.endIdx; p++) {
-      const rpm = rows[p].rpm;
-      if (rpm > currentMax) currentMax = rpm;
-      if (currentMax - rpm > 500) {
-        // Truncate pull at this index
-        pull.endIdx = p - 1;
-        pull.endTime = rows[pull.endIdx].time;
-        pull.durationSec = pull.endTime - pull.startTime;
-        break;
-      }
-    }
-  });
+  // Final pull (if log ends during pull)
+  if (inPull && wotSteadyStartIdx !== -1) {
+    const endIdx = rows.length - 1;
+    const duration = rows[endIdx].time - rows[wotSteadyStartIdx].time;
+    const rpmStart = rows[pullStartIdx].rpm || 0;
+    const rpmEnd = rows[endIdx].rpm || 0;
+    const rpmSpan = rpmEnd - rpmStart;
 
-  // Re-evaluate valid pulls after truncation
-  const validPulls = pulls.filter(p => p.durationSec >= 0.5 && (p.peakRpm - p.startRpm) >= 500);
+    if (duration >= 1.0 && rpmSpan >= 800) {
+      let peakRpm = -Infinity;
+      let peakBoost = -Infinity;
+      let peakLoad = -Infinity;
+      let gear = null;
+
+      for (let p = pullStartIdx; p <= endIdx; p++) {
+        if (Number.isFinite(rows[p].rpm) && rows[p].rpm > peakRpm) peakRpm = rows[p].rpm;
+        if (Number.isFinite(rows[p].boost) && rows[p].boost > peakBoost) peakBoost = rows[p].boost;
+        if (Number.isFinite(rows[p].calc_load) && rows[p].calc_load > peakLoad) peakLoad = rows[p].calc_load;
+        if (!gear && Number.isFinite(rows[p].gear)) gear = Math.round(rows[p].gear);
+      }
+
+      pulls.push({
+        index: pulls.length + 1,
+        startIdx: pullStartIdx,
+        endIdx: endIdx,
+        startTime: rows[pullStartIdx].time,
+        endTime: rows[endIdx].time,
+        durationSec: rows[endIdx].time - rows[pullStartIdx].time,
+        wotSteadyStartIdx,
+        wotSteadyDuration: duration,
+        startRpm: rpmStart,
+        endRpm: rpmEnd,
+        rpmSpan,
+        peakRpm,
+        peakBoost,
+        peakLoad,
+        gear: gear || 0
+      });
+    }
+  }
+
+  const validPulls = pulls;
 
   // Compute stats
   let maxRpm = -Infinity;

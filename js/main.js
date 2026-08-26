@@ -359,12 +359,12 @@
         return;
       }
 
-      const session = { ...meta, rows: stored.rows };
-      const rawText = stored.rawText || '';
+       const session = { ...meta, rows: stored.rows };
+       const rawText = stored.rawText || '';
 
-      window.Metrics.computeMetrics(session);
-      const findings = window.Findings.runFindings(session);
-      session.findings = findings;
+       window.Metrics.computeMetrics(session);
+       const findings = window.RulesEngine.runFindings(session);
+       session.findings = findings;
 
       window.UI.showView('session');
 
@@ -507,13 +507,13 @@
       const sessionA = { ...metaA, rows: dataA.rows };
       const sessionB = { ...metaB, rows: dataB.rows };
 
-      window.Metrics.computeMetrics(sessionA);
-      window.Metrics.computeMetrics(sessionB);
+       window.Metrics.computeMetrics(sessionA);
+       window.Metrics.computeMetrics(sessionB);
 
-      const findingsA = window.Findings.runFindings(sessionA);
-      const findingsB = window.Findings.runFindings(sessionB);
-      sessionA.findings = findingsA;
-      sessionB.findings = findingsB;
+       const findingsA = window.RulesEngine.runFindings(sessionA);
+       const findingsB = window.RulesEngine.runFindings(sessionB);
+       sessionA.findings = findingsA;
+       sessionB.findings = findingsB;
 
       const container = document.getElementById('compare-container');
       if (container) {
@@ -561,9 +561,9 @@
 
         const session = result.session;
 
-        window.Metrics.computeMetrics(session);
-        const findings = window.Findings.runFindings(session);
-        session.findings = findings;
+         window.Metrics.computeMetrics(session);
+         const findings = window.RulesEngine.runFindings(session);
+         session.findings = findings;
 
         await window.Storage.saveSession(session, rawText);
         lastSessionId = session.id;

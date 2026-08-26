@@ -1,0 +1,97 @@
+AP Log Analyzer — Validation Pack
+Three layers: (1) make the prompt hard to misread, (2) audit the code against the prompt, (3) run known-answer fixtures. Layer 3 is the only one that actually proves anything.
+Layer 1 — Make the prompt verifiable before you send it
+Append this to the consolidated prompt. It converts prose requirements into a machine-checkable contract.
+IMPLEMENTATION CONTRACT
+
+Before writing code, output a REQUIREMENTS TABLE: one row per numbered
+requirement in Parts 1-6 and Appendices A-D, with the function name
+that will implement it. I will review this before you write code.
+
+Every requirement must map to exactly one named function. If two
+requirements conflict, STOP and ask - do not silently pick one.
+
+Code structure (non-negotiable):
+  parse.js       delimiter sniff, encoding, channel mapping, hard-fail
+  states.js      operating-state classifier, one pure function
+  pulls.js       pull detection + scoreability gate
+  rules/*.js     one file per rule, each exporting
+                 evaluate(samples, states, ctx) -> Finding[]
+  findings.js    Finding type; construction FAILS if any required
+                 context field is missing
+  report.js      renders sections in fixed order
+
+A Finding object MUST NOT be constructible without: timestamp, rpm,
+gear, boost, load, throttle, state, observed, expected, ruleId.
+Enforce in the constructor. Throw, do not default.
+
+No rule may read raw samples directly. Rules receive only samples
+already tagged with state. Enforce by passing a frozen view.
+
+Every threshold must be a named constant in a single config module,
+with a comment citing which prompt section it came from. No magic
+numbers inline.
+
+Output at the end: a COVERAGE REPORT listing any requirement you did
+not implement and why. An empty list is only acceptable if true.
+Layer 2 — Audit prompt (run in a fresh session, no code context)
+Paste the consolidated spec plus the generated source into a clean chat. A fresh model is a better auditor than the one that wrote it.
+You are auditing an implementation against a specification. You did
+not write this code. Be adversarial.
+
+For each numbered requirement in the spec, output:
+  ID | requirement (short) | IMPLEMENTED / PARTIAL / MISSING / WRONG
+  | file:line | evidence
+
+Rules for your verdicts:
+- IMPLEMENTED requires you to quote the line that does it.
+- If you cannot find the code, say MISSING. Do not assume it exists
+  elsewhere.
+- PARTIAL if the threshold, unit, or gating condition differs from
+  the spec in any way, including sign.
+
+Then answer specifically:
+1. List every numeric literal in the rule logic. For each, name the
+   spec section it comes from, or flag it as UNSOURCED.
+2. Find every place a sample count is used where a time delta is
+   required. Sample rate is variable (0.003-0.102s).
+3. Find every comparison against an absolute value where a commanded
+   channel exists (AFR, boost, fueling).
+4. Find every rule that can fire on a single sample.
+5. Find every code path that can emit a PASS or GOOD when the
+   underlying channel is missing or the log has no WOT pull.
+6. Confirm boost math is done in absolute pressure and that missing
+   barometric pressure marks results UNVALIDATED.
+7. Confirm knock event counting collapses monotonic decay into one
+   event, and show the code that does it.
+8. Confirm the NOT EVALUATED section can never be silently empty.
+
+Do not suggest improvements. Only report conformance.
+Layer 3 — Known-answer fixtures
+Ten synthetic AP-format CSVs are provided, written in latin-1 with real degree symbols and jittered sample intervals (0.003-0.102s). expected_results.json holds the assertions. Every fixture is designed so that the WRONG implementation produces a specific, recognisable failure.
+ID	Fixture	Must produce	Failure signature
+F01	Cruise only, one FBK -1.05 with 3-sample decay	0 pulls; exactly 1 knock event classified CRUISE_NOISE, informational; NOT EVALUATED non-empty	Reports 4 events (decay counted separately) or reports LOAD_KNOCK
+F02	Throttle stab: 8 samples >90%, 0.2s, peak 0.4 psi	0 pulls detected	Detects a pull and grades it
+F03	Fuel-cut recovery: AFR 15.97 @ 0.18 psi, cmd 14.70; AFC -25.8% @ 1.8% IDC	0 AFR findings, 0 fuel-trim findings	Flags dangerous lean condition and/or fuel trim fault
+F04	Clean 3rd-gear pull; target deliberately ramps 17->12 psi above 5000 rpm	1 pull, gear 3, no knock, no AFR finding, no overshoot finding, GOOD populated	False overshoot from collapsing target
+F05	Real load knock, FBK -3.5 sustained, DAM holds 1.000	1 pull; LOAD_KNOCK; severity BAD (not UGLY); full context incl. IAT at pull start	Severity inflated to UGLY, or context fields missing
+F06	True overshoot, 2.1 psi over target sustained in WOT_STEADY	1 overshoot finding; names P0234 / P226B	Missed because averaging diluted it
+F07	DAM 1.000 -> 0.938, boost target drops 17 -> 13	UGLY; DAM<1.0 flagged; boost/AFR cross-check performed; target drop identified as failsafe	Reports boost tracking as GOOD, or treats target drop as tune intent
+F08	Knock channels absent from header	CANNOT EVALUATE - monitor not logged	Says 'no knock detected'
+F09	Semicolon-delimited	Parses; 0 pulls	Parse failure or single-column garbage
+F10	No barometric channel	All boost error figures marked UNVALIDATED	Confident boost verdict with no baro
+The assertion that matters
+Each test asserts two things: that the correct finding appears, and that incorrect ones do not. Write the negative assertion first. A test suite that only checks for expected findings will pass on an over-sensitive analyzer, which is exactly the failure mode you are trying to eliminate.
+Layer 4 — Acceptance gate on your real logs
+•	Run log 3 (cruise-only) first. Expected: DRIVE TYPE = cruise only, PULLS empty, UGLY none, BAD none, GOOD near-empty, NOT EVALUATED long. Anything in GOOD or UGLY means the state classifier is not working.
+•	Run all four logs. Total UGLY findings across all four must be zero. You already know this car is healthy — DAM 1.000 everywhere. Any UGLY is a false positive by definition.
+•	Cross-session check: the cruise -1.05 pattern should appear as recurring in the same RPM x load cell across logs, and should be reported as recurring-but-informational, not escalated.
+•	Diff test: run the same log twice. Byte-identical reports. Any variance means non-deterministic ordering or floating-point accumulation.
+•	Regression lock: once all ten fixtures pass, commit the expected output verbatim as golden files. Future changes diff against them.
+Layer 5 — Cheap red flags to watch for in review
+•	Any occurrence of 12.5, 11.5, 14.7, or 0.025 as an inline literal.
+•	Any use of array index arithmetic to represent elapsed time.
+•	A rule file that imports the raw CSV rows rather than the state-tagged view.
+•	The string "no knock detected" existing anywhere in the codebase.
+•	A findings array that can be empty while the report still prints a GOOD section.
+•	utf-8 appearing in any read call.

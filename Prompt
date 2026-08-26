@@ -1,0 +1,350 @@
+AP Log Analyzer — Consolidated Prompt Specification
+2022 Subaru WRX (FA24DIT) · Dmann 91-FLEX · AccessPort CSV logs
+Contents: Parts 1–6 (core rewrite) followed by Appendices A–C (Knock Control, Fueling, Boost) derived from NAMR/Atlas documentation and Cobb threshold guidance.
+ Part 0 — Preamble
+Major revision to AP Log Analyzer. The current rule logic produces false findings because it evaluates thresholds without regard to what the engine was actually doing. Rewrite around an operating-state model. Real-log validation has proven the following; treat it as ground truth, not suggestion.
+Part 1 — Corrections to existing behaviour
+•	Delimiter: real logs are comma-delimited. Detect from the header (comma, tab, semicolon) — never hardcode.
+•	Encoding: degree-symbol columns (AVCS Exh Left (°), Feedback Knock (°), etc.) are not UTF-8. Read as latin-1 or replace invalid bytes. If mishandled, those column names won't match and the knock channels map to nothing — the app then reports zero knock on every log, forever. Verify Feedback Knock and Fine Knock Learn mapped successfully and hard-fail the parse if not.
+•	Sample rate is variable and jittery: observed 0.003–0.102 s, median 0.025. All windowed math must use real time deltas. Never multiply sample counts by an assumed rate.
+Part 2 — Operating-state classifier (new, and the core of the rewrite)
+Before any rule runs, classify every sample into exactly one state. Rules subscribe to states. This replaces all raw threshold gating.
+State	Condition
+IDLE	RPM < 1200, throttle < 5%
+DECEL_FUEL_CUT	IDC < 10% or load < 0.5 g/rev, with throttle < 25%
+CRUISE	boost < 0, throttle 5–60%, steady RPM
+TIP_IN	throttle rising > 200%/sec, or boost rising > 15 psi/sec
+SPOOL	throttle > 90%, boost rising, not yet within 2 psi of target
+WOT_STEADY	throttle > 90%, boost > 4 psi, boost within 2 psi of target, sustained ≥ 0.3 s
+SHIFT	throttle drops > 50% within 0.2 s while RPM > 3000
+OVERRUN	throttle < 10%, RPM falling, boost < −5 psi
+
+A WOT pull = contiguous SPOOL → WOT_STEADY, minimum 1.0 s in WOT_STEADY, RPM rising monotonically ≥ 800 RPM. Report gear, RPM span, peak boost, peak load per pull.
+Validated against real data: logs containing only brief throttle stabs (8 samples > 90% throttle, 0.2 s, peak boost 0.4 psi) must produce zero pulls. If your detector finds a pull there, it is wrong.
+Add a 300 ms settling exclusion after every DECEL_FUEL_CUT and SHIFT state. Wideband and fuel-trim data in that window are meaningless. This single rule eliminates the majority of observed false findings.
+Part 3 — Rule rewrites
+AFR
+Delete the fixed 12.5:1 threshold. The tune commands ~13.0–13.2 AFR at WOT on E78 (≈ lambda 0.89), and delivers within 0.07 of commanded. A 12.5 threshold, or the common "11.5–12.0 at WOT" rule of thumb, is EJ pump-gas guidance and will condemn a correctly-fuelled flex tune.
+New rule:
+•	State must be WOT_STEADY
+•	Compare actual vs Comm Fuel Final, never an absolute number
+•	Flag only if actual is leaner than commanded by > 0.7 AFR for ≥ 5 consecutive samples
+•	Never state a generic AFR target in finding text — commanded is the target
+Validated: a raw Boost > 0 gate flagged AFR 15.97 as dangerous. At that sample boost was 0.18 psi, commanded was 14.70 (stoich), and it was fuel-cut recovery mid-shift. The new rule must not flag it.
+Boost
+•	Overshoot: state WOT_STEADY only, sustained > 2 psi over target for ≥ 0.5 s
+•	Exclude samples where Target Boost Final Rel is falling faster than 5 psi/sec. The tune deliberately ramps target down at high RPM (measured: 6.98 → 3.52 psi from 5000 to 5900 RPM in 3rd) and during lift. Comparing against a collapsing target produced +11.22 psi false overshoots on every gearchange. Gated correctly, mean error across all WOT is +0.03 psi.
+•	"Boost holds to redline" must be judged as tracking target, not as absolute boost staying flat.
+Knock — classify, don't just threshold
+Every knock event must be assigned a class before reporting:
+•	LOAD_KNOCK — state SPOOL or WOT_STEADY. Real. Report with gear, RPM, boost, load, timing before and after, and DAM.
+•	CRUISE_NOISE — boost < 0, throttle < 60%, load < 1.5, value exactly −1.05 (one correction step), self-recovering. Report in an informational section, not as a fault. Validated: this is the dominant pattern in normal driving, appears identically on FBK or FKL depending on whether that load/RPM cell has already learned, and correlates with mechanical/drivetrain noise rather than detonation.
+Severity for LOAD_KNOCK:
+•	Ugly: DAM < 1.0 at any point, or FBK ≤ −4°, or FKL ≤ −2° during a pull, or any knock that fails to recover within 2 s
+•	Bad: FBK −2 to −3.9 sustained
+•	Informational: single-step −1.05 that recovers with DAM held at 1.0
+Tuner guidance to encode: −3 or shallower with DAM at 1.0 is not cause for concern. Present factually, do not alarm.
+KS Noise Cyl 1–4: chart only. Create no rules whatsoever. Measured across real logs: clean WOT mean 934, knocking WOT mean 907, cruise knock mean 866. The channel does not discriminate. Any threshold placed on it would generate noise indefinitely.
+Timing context (new — high value)
+For each pull, report minimum timing vs gear, RPM and load, and chart timing against load. Measured behaviour: 3rd gear 12.5–15.5°, 4th 7.5–11.5°, 5th 3.0–7.5° at similar load. Progressive retard in taller gears is correct tune behaviour and is where knock margin is thinnest. Flag as Bad only if timing is pulled below 0° or if a LOAD_KNOCK occurs alongside timing already at its floor.
+Fuel trims
+•	Exclude DECEL_FUEL_CUT and OVERRUN entirely. Validated: AF Correction reads −25.8% at 1.8% IDC during coast — meaningless. Cruise-only values are −1.7% ±3.6 and +1.2% ±2.4, both healthy.
+•	AF Learning 1 independently vs ±10%. Bank 2 does not exist on this car; do not synthesise it.
+•	Report cruise-window mean and standard deviation, not min/max.
+Fuel pressure
+Apply a 0.5 s rolling median before evaluating. Raw channel is noisy: 47–59 psi at idle, 31–75 under load, with no fault present. Flag only a smoothed drop > 20% sustained ≥ 0.5 s within a pull.
+Temperature
+•	IAT > 120 °F during a pull only. Cruise heatsoak in traffic is normal and must not be flagged.
+•	Oil > 250 °F, coolant > 220 °F.
+•	Report IAT at pull start alongside every knock finding — knock at 64 °F IAT and at 120 °F mean very different things.
+Ethanol
+•	Use Ethanol Conc FINAL, never RAW.
+•	Report per session and track the trend across stored sessions. Measured: 73.6 → 73.6 → 74.1 → 78.1, rising. Flag when three consecutive sessions exceed 75%.
+Part 4 — Anti-false-positive requirements
+These are the failure modes that made the previous version untrustworthy. Every one must be enforced.
+•	No rule fires on a single sample. Minimum 5 consecutive qualifying samples or 0.15 s, whichever is longer.
+•	No rule fires during SHIFT, TIP_IN, DECEL_FUEL_CUT, or within 300 ms after them.
+•	No absolute threshold where a commanded channel exists. AFR, boost, and fuelling are all compared to commanded values.
+•	If a log contains no WOT pull, all pull-dependent rules report NOT EVALUATED — no WOT pull in this log. Never "no knock detected." Validated: three of four real logs contain no pull at all; a clean bill of health on those logs is a lie.
+•	If a monitor is missing, report CANNOT EVALUATE — monitor not logged. Never a pass.
+•	Every finding must carry: timestamp, RPM, gear, boost, load, throttle, operating state, and the observed vs expected value. A finding without full context is not actionable.
+Part 5 — Report structure
+SESSION      file, duration, tune name from AP Info, ethanol, ambient IAT
+DRIVE TYPE   "cruise only - no pulls"  |  "N WOT pulls detected"
+PULLS        per pull: gear, RPM span, peak boost vs target, peak load,
+             min timing, knock, AFR vs commanded, IAT
+UGLY         actionable now, or "none"
+BAD          investigate, or "none"
+INFORMATIONAL  cruise-noise knock events, expected tune behaviour
+GOOD         explicitly verified, each stating what was checked
+NOT EVALUATED  every rule that could not run, and why
+
+The NOT EVALUATED section is mandatory and must never be empty on a cruise-only log.
+Part 6 — Regression tests
+Build these as fixtures in /docs/test/ and run on every change:
+•	Cruise-only log → 0 pulls, all pull rules NOT EVALUATED, cruise-noise knock listed as informational
+•	Throttle stab (8 samples > 90%, 0.2 s, 0.4 psi) → 0 pulls detected
+•	Fuel-cut recovery sample (AFR 15.97, boost 0.18, commanded 14.70) → no AFR finding
+•	Gearshift target collapse (boost 5.61, target 2.50, throttle 46%) → no overshoot finding
+•	Real load-knock (FBK −1.05, 9.4 psi, load 2.45, 100% throttle, gear 5, DAM 1.0) → classified LOAD_KNOCK, severity informational, with timing 5.0→3.5 reported
+•	High-RPM target ramp-down (target 6.98→3.52 while actual holds 7) → no overshoot finding
+•	Decel AF Correction −25.8% at 1.8% IDC → no fuel trim finding
+•	Degree-symbol columns in latin-1 → knock channels map successfully
+Each test asserts both that correct findings appear and that incorrect ones do not. The second assertion is the one that matters.
+All prior constraints remain binding: static site, no build step, no keys, zero external requests, default-src 'self', system fonts, vendored MIT charting, IndexedDB, public repo with *.csv and *.icloud ignored, runs from index.html on the filesystem.
+Once it's built, run log 3 first. If it reports anything in Good or Ugly rather than filling NOT EVALUATED, the state classifier isn't working — and that's the failure that made the first version untrustworthy.
+ Appendices — Domain Model Blocks (append to prompt)
+Appendices A–C are additive to Parts 1–6. Where an appendix and a Part conflict, the Part wins: Parts encode behaviour validated against this specific car's logs, appendices encode general platform documentation.
+Appendix A — Knock Control Model (FA24 DIT)
+A1. Threshold and severity layer (Cobb-derived)
+KNOCK CONTROL MODEL (FA24 DIT)
+
+Timing model: final = (dynamic_advance_max x DAM) + FBK + FKL
+DAM scales an entire table. FBK/FKL are additive degrees.
+Therefore DAM is the primary health metric; FBK/FKL are secondary.
+All FBK/FKL values are IGNITION TIMING degrees, never fuel.
+
+EVENT DETECTION
+- One FBK event = transition to a MORE negative value.
+- Monotonic return toward zero = decay of the SAME event. Do not count.
+- Report: event count, peak magnitude, samples-to-recovery.
+
+SEVERITY (load-dependent)
+Low load / cruise (<1.0 g/rev, throttle <40%):
+  0 to -2.5        NORMAL, likely noise
+  -2.5 to -4.2     MONITOR
+  worse than -4.2  INVESTIGATE
+WOT / high load:
+  FBK 0 to -1.4    NORMAL
+  FBK -1.4 to -2.8 MONITOR (escalate if repeatable across pulls
+    and not coincident with throttle tip-in)
+  FBK worse than -2.8  INVESTIGATE
+  FKL worse than -2.8  INVESTIGATE
+  FKL -1.4 spanning a large RPM span = multiple cells = INVESTIGATE
+DAM: any value below 1.000 = INVESTIGATE regardless of FBK/FKL.
+  On DAM<1.0, also check boost vs target and AFR vs commanded for
+  failsafe/enrichment behaviour, and report together.
+
+SPECIAL FLAGS
+- FKL present with no preceding FBK in same cell = high-intensity
+  event, ECU skipped feedback stage. Escalate one level.
+- FA24 DIT FKL authority is ~1 degree total. Do not apply EJ-era
+  thresholds to FKL magnitude on this platform.
+
+FALSE-KNOCK TAGGING (tag, exclude from severity count, still list)
+- Clutch engagement from stop
+- Gear change (gear channel transition +/-1s)
+- Low RPM + high gear + partial throttle (lugging)
+- Steady-state cruise, negative boost
+- Abrupt throttle rate change (tip-in/tip-out)
+
+PULL VALIDITY GATE (run BEFORE scoring any WOT pull)
+Require: single gear, throttle >=95% and stable, RPM monotonic rising,
+no shift, duration >=2s. If failed, output "UNSCOREABLE PULL - dirty
+data" with the reason. Do NOT issue a knock verdict on a failed gate.
+
+REPORTING RULE
+Never report a raw count of negative samples. Report events, peak,
+load context, and false-knock classification.
+A2. Mechanism layer (NAMR/Atlas-derived)
+KNOCK CONTROL MODEL - SUBARU DI (FA20/FA24) - MECHANISM LAYER
+
+SENSORS
+Two piezoelectric knock sensors, rear of crankcase, one per bank.
+  LEFT  -> cylinders 3 and 1
+  RIGHT -> cylinders 4 and 2
+If per-bank channels exist, report bank attribution.
+  Single-bank recurrence -> physical/local cause (plug, injector,
+    deposits, local noise source). Recommend cylinder-level inspection.
+  Both-bank -> global cause (fuel quality, IAT, timing, load).
+ECU samples only within the firing cylinder's ignition window, band-
+filtered. Any noise landing in that window is a detonation candidate.
+Use this to explain false knock; do not call the sensor "wrong."
+
+EVENT SHAPE CLASSIFICATION (apply before magnitude thresholds)
+  Single step, no subsequent deepening within event -> NOISE-LIKE
+    (docs cite ~-1.41 non-increasing as characteristic)
+  Successive deepening steps within one event -> GENUINE, escalate
+  Monotonic return toward 0.0 -> recovery, same event, do not count
+Report trajectory shape alongside peak magnitude.
+
+RECURRENCE IS THE DECIDING TEST
+Bucket every correction by (RPM band x load g/rev cell x gear).
+  Seen once, not reproducible -> LIKELY NOISE, especially if shallow
+  Recurring across sessions in the same cell -> REAL FINDING:
+    either true detonation or condition-specific mechanical noise
+Severity = f(depth, trajectory, recurrence). Recurrence dominates.
+Cross-session comparison required for any confident verdict.
+
+FKL SEMANTICS
+FKL is EEPROM-persisted per RPM x load cell.
+An FKL value may be RECALLED with no live event in this log.
+  Do not report recalled FKL as a new event.
+Clears only per-cell, only when that cell sees no events.
+Report WHICH CELLS carry learned subtraction, never "FKL cleared."
+
+DAM ASYMMETRY
+DAM falls fast on significant events; rises slowly, and only when
+detonation is absent during CRITICAL/HIGH-LOAD operation.
+  Therefore: DAM recovery is only meaningful if the log contains
+  qualifying WOT/high-load operation. If the log is cruise-only,
+  report "DAM stable, recovery not testable in this session."
+
+PER-EVENT CONTEXT BLOCK (emit for every flagged correction)
+  Load state: decel / light load / heavy load (pull) / transient
+  Fuel: type and octane (incl. ethanol content if known)
+  Recent mechanical changes: NEW PARTS OR MOUNTS raise block
+    vibration and are a documented cause of corrections
+  Recent tune changes
+  Bank attribution if available
+  Reproducibility: seen in N of M comparable sessions
+
+CANDIDATE CAUSES (remediation section, ordered)
+  Faulty spark plugs or fuel injectors
+  AFR too lean OR too rich for cylinder conditions
+  Low or degraded octane (fuel aged in tank; oil/coolant contamination)
+  Ignition timing too advanced
+  Effective compression raised by carbon deposits
+  Excessive cylinder temperature / hot spots (carbon deposits) / high IAT
+Note: carbon deposits act via TWO mechanisms (compression + hot spots)
+and are especially relevant on direct-injection engines.
+
+NARRATIVE - WHY TIMING IS PULLED
+Retarding spark moves combustion later; as the piston descends,
+cylinder volume rises, density/pressure/temperature fall, suppressing
+detonation. Cost is torque via reduced mechanical advantage.
+Use when explaining perceived power loss during corrections.
+Appendix B — Fueling Model (Subaru DI, FA20/FA24)
+FUELING MODEL - SUBARU DI (FA20/FA24)
+
+WORK IN LAMBDA INTERNALLY. Lambda is fuel-independent.
+Convert to AFR only for display, using LOGGED ethanol content:
+  stoich AFR ~= 14.7 (E0) ... ~9.76 (E85); interpolate by ethanol %.
+  NEVER hardcode 14.7. On E70-80 stoich is ~10.3-10.8:1.
+Flag as ERROR any AFR interpretation made without ethanol context.
+
+TRIM TAXONOMY - never sum, average, or interchange these
+  A/F Correction #1 : wideband, trims INJECTOR PULSE WIDTH, short-term,
+                      CLOSED LOOP ONLY, activation gated by RPM x load
+                      ("excitation") -> interpret PER CELL, not globally
+  A/F Learning #1   : wideband, trims PULSE WIDTH, long-term
+  A/F Correction #3 : narrowband, trims AIR-FUEL RATIO, short-term,
+                      near-stoich / idle conditions only
+  A/F Learning #3   : narrowband, trims AIR-FUEL RATIO, long-term
+Do not report #3 activity during pulls as meaningful.
+
+LOOP STATE GATE - required on every AFR statistic
+Emit loop state with all AFR results. Grade regimes separately.
+  CLOSED LOOP (cruise/light load): feedback active. Deviation from
+    target indicates trim working; assess correction magnitude,
+    not raw deviation.
+  OPEN LOOP (WOT/high load): NO feedback correction exists.
+    Deviation from commanded = calibration/compensation issue.
+    Closed-loop accuracy does NOT imply open-loop accuracy.
+    Never generalise a cruise AFR result to a WOT verdict.
+
+CELL-BASED REPORTING
+Bucket AFR corrections by RPM x load (g/rev), same grid as knock.
+Never report a single session-wide average as the headline.
+Surface worst cell and its magnitude; a small mean can hide a
+large localised error.
+
+LEARNING #1 INTERPRETATION (flex fuel)
+Correlate Learning #1 against ethanol content across sessions.
+  Learning tracks ethanol changes      -> NORMAL flex adaptation
+  Learning drifts, ethanol stable      -> INVESTIGATE:
+      MAF calibration (esp. aftermarket intake), intake leak,
+      injector performance, intake-valve carbon deposits
+  Learning near its authority limit    -> ESCALATE. ECU out of range;
+      closed loop corrects only within defined limits.
+
+SENSOR LAG
+Wideband feedback is delayed (transport + processing + smoothing).
+When correlating AFR excursions with knock events, apply lag
+compensation; do not co-timestamp naively, especially in transients.
+If loop feedback delay exceeds tolerance, closed loop is unavailable.
+
+KNOCK <-> FUELING CROSS-REFERENCE (mandatory)
+For any knock finding, retrieve AFR/lambda state in the SAME
+RPM x load cell. Report jointly.
+  Knock + lean deviation in same cell = escalate; strongest fueling-
+    related detonation signal.
+  Knock + rich deviation = also a documented detonation contributor
+    (incomplete combustion); do not dismiss.
+  Knock with AFR on target = points away from fueling; weight
+    mechanical noise, octane, IAT, deposits, timing instead.
+
+MAF NOTE
+Factory Subaru DI load calculation is MAF-based (g/rev derived from
+g/s). Speed density via MAP is non-factory. If intake hardware has
+changed, treat load and therefore ALL cell assignments as suspect
+until Learning #1 has stabilised.
+Appendix C — Boost Model (Subaru DIT, FA20DIT/FA24DIT)
+BOOST MODEL - SUBARU DIT (FA20DIT/FA24DIT)
+
+ABSOLUTE VS RELATIVE - CRITICAL
+ECU targets MANIFOLD ABSOLUTE PRESSURE, not gauge boost.
+  displayed_target_psi + 14.70 = ECU absolute target
+  realized_boost = ECU_absolute_target - current_barometric
+At non-sea-level baro, realized boost DIFFERS from displayed target.
+  (e.g. 16.00 displayed -> 30.70 abs; at 12.00 baro -> 18.70 boost)
+Work in ABSOLUTE internally; convert to gauge only for display,
+using LOGGED barometric pressure.
+If baro is absent from the log: state this, and mark all boost error
+figures UNVALIDATED. Do not present a confident boost verdict.
+Note: baro compensation tables usually operate in the ABSOLUTE
+domain - do not assume relative-domain scaling.
+
+PHASE SEGMENTATION - grade each phase separately
+For every WOT event, segment and score independently:
+  1 TIP-IN    : target steps up, error rises sharply (esp. from
+                vacuum). This is NORMAL. Do not flag.
+  2 SPOOL     : error closing toward zero.
+                TURBO LAG = time(target increase) -> time(error = 0)
+                Report per pull and per gear; track across sessions.
+                Lengthening lag on same car -> boost leak / wastegate /
+                actuator. INVESTIGATE.
+  3 OVERSHOOT : error crosses positive -> negative. Normal if brief
+                (<0.5s). Threshold: error must NOT go below -1.50 psi.
+                Worse than -1.50 psi -> FLAG (mechanical damage risk).
+  4 STEADY WOT: spec -1.00 to +1.00 psi. Tighter = better.
+                This is the ONLY window the +/-1.00 spec applies to.
+
+REPORTING RULE - never a single mean
+Report at minimum:
+  max positive error (spool)
+  max negative error (overshoot)
+  mean error over STEADY-STATE WOT window only
+  turbo lag
+A session-wide mean near zero is meaningless: positive spool error
+and negative overshoot cancel. Never headline a single average.
+
+PI CONTROLLER (FA20DIT/FA24DIT = P and I only, no D)
+  P reacts immediately to error; effective transient + steady state.
+  I accumulates over time; effective steady state only.
+  INTEGRAL RESETS TO ZERO on closed-loop entry/exit, including
+  GEAR SHIFTS.
+Therefore: EXCLUDE post-shift windows from boost control evaluation.
+Error immediately after a shift is expected, not a fault.
+Absence of a D term is why brief overshoot is characteristic here.
+If commanded wastegate position/duty is logged:
+  error + wastegate at limit      -> hardware/capability constraint
+  error + authority remaining     -> controller calibration issue
+
+DTC MAPPING
+  Excessive NEGATIVE error (overboost)  -> P0234, P226B
+  Excessive POSITIVE error (underboost) -> P0299, P226C
+Name the applicable code when reporting sustained error.
+
+KNOCK <-> BOOST CROSS-REFERENCE (mandatory)
+If a knock event falls within an OVERSHOOT window, report jointly
+and ESCALATE: overshoot is a transient pressure/temperature excursion
+and a documented detonation mechanism. Causally coherent pairing;
+materially stronger than either finding alone.
+Also cross-check boost vs target whenever DAM < 1.000 (failsafe
+boost reduction is part of the DI knock strategy).
+Appendix D — Precedence and conflict resolution
+•	Parts 1–6 override appendices where they conflict — they are validated against this vehicle's actual logs.
+•	Known conflict: Appendix A2 pull-validity gate requires throttle ≥95% and duration ≥2 s; Part 2 uses >90% and ≥1.0 s in WOT_STEADY. Use Part 2's definition for pull detection; use A2's stricter gate only to decide whether a detected pull is SCOREABLE for knock verdicts.
+•	Known conflict: Appendix A1 low-load severity band (0 to −2.5 NORMAL) and Part 3 CRUISE_NOISE class both cover cruise −1.05. Part 3 wins: classify as CRUISE_NOISE, informational.
+•	Appendix C absolute-pressure handling supersedes any relative-only boost math elsewhere. If barometric pressure is not a logged channel, add it; until then every boost error figure carries an UNVALIDATED marker.

@@ -73,10 +73,23 @@ function parseApInfo(rawHeader) {
   return m ? m[1].trim() : rawHeader.replace(/^AP Info:/, '').trim();
 }
 
+/**
+ * Normalize degree symbols from different encodings (UTF-8, latin-1)
+ * Handles: ° (UTF-8 U+00B0), ° (latin-1 0xB0)
+ */
+function normalizeDegreeSymbols(s) {
+  // Replace all variants of degree symbol
+  return s
+    .replace(/\u00b0/g, '°')  // UTF-8
+    .replace(/°/g, '°');      // Ensure consistent symbol
+}
+
 function normKey(s) {
-  return s.toLowerCase()
+  const normalized = normalizeDegreeSymbols(s);
+  return normalized.toLowerCase()
     .replace(/\s*\([^)]*\)\s*$/, '')  // strip trailing (unit)
     .replace(/[\u00b0\s]+$/, '')       // strip trailing degree + spaces
+    .replace(/°/g, '')                  // also strip our standardized degree
     .trim();
 }
 
@@ -148,7 +161,16 @@ async function parseFile(file) {
       }
     });
 
-    const missingRecommended = RECOMMENDED_MONITORS.filter(rm => !mapped.includes(rm));
+     const missingRecommended = RECOMMENDED_MONITORS.filter(rm => !mapped.includes(rm));
+
+    // CRITICAL VALIDATION: Feedback Knock and Fine Knock Learn must be mapped
+    // If not, the entire log is unreliable for knock analysis
+    const hasFeedbackKnock = mapped.includes('feedback_knock');
+    const hasFineKnockLearn = mapped.includes('fine_knock_learn');
+    
+    if (!hasFeedbackKnock || !hasFineKnockLearn) {
+      return { ok: false, error: { code: 'CRITICAL_COLUMNS_MISSING', message: `Critical knock monitoring columns not found: Feedback Knock ${hasFeedbackKnock ? '✓' : '✗'}, Fine Knock Learn ${hasFineKnockLearn ? '✓' : '✗'}. Cannot reliably analyze this log.` }, session: null, summary: null };
+    }
 
     const rows = [];
     let rowsParsed = 0;

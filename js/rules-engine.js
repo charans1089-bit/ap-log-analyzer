@@ -336,11 +336,13 @@ function runFindings(session) {
   // ────────────────────────────────────────────────────────────────────
   // RULE: AFR_LEAN (WOT only)
   // ────────────────────────────────────────────────────────────────────
-  if (pulls.length === 0) {
-    reportNotEvaluated('AFR_LEAN', 'AFR vs Commanded', 'No WOT pulls detected in this log.');
-  } else if (!hasColumn(session, 'afr') || !hasColumn(session, 'comm_fuel_final')) {
+  if (!hasColumn(session, 'afr') || !hasColumn(session, 'comm_fuel_final')) {
     reportCannotEvaluate('AFR_LEAN', 'AFR vs Commanded', 'Monitor afr or comm_fuel_final not logged.');
-   } else {
+  } else if (rows.every(r => !isDataValid(r, 'afr')) || rows.every(r => !isDataValid(r, 'comm_fuel_final'))) {
+    reportCannotEvaluate('AFR_LEAN', 'AFR vs Commanded', 'Monitor afr or comm_fuel_final contains no valid numeric data.');
+  } else if (pulls.length === 0) {
+    reportNotEvaluated('AFR_LEAN', 'AFR vs Commanded', 'No WOT pulls detected in this log.');
+  } else {
     // Check each WOT_STEADY window in pulls
     let afrFinding = null;
     let afrFindingIdx = -1;
@@ -388,11 +390,22 @@ function runFindings(session) {
   // ────────────────────────────────────────────────────────────────────
   // HELPER: Detect knock events (Issue #2 rewrite)
   // ────────────────────────────────────────────────────────────────────
+  // KNOCK EVENT DETECTOR (State-aware, shape-classifying)
+  // ────────────────────────────────────────────────────────────────────
   function detectKnockEvents(rows, states, colName, startIdx = 0, endIdx = rows.length - 1) {
     const events = [];
     let currentEvent = null;
     let prevValue = 0;
-    let deepeningSteps = 0;
+    
+    function finalizeEvent(evt) {
+      if (!evt) return;
+      const stateFreq = {};
+      for (const s of evt.states) {
+        stateFreq[s] = (stateFreq[s] || 0) + 1;
+      }
+      evt.modalState = Object.entries(stateFreq).reduce((a, b) => b[1] > a[1] ? b : a)[0];
+      events.push(evt);
+    }
     
     for (let i = startIdx; i <= endIdx; i++) {
       const val = rows[i][colName];
@@ -400,13 +413,8 @@ function runFindings(session) {
       
       const state = states[i];
       
-      // Detect new event: transition to MORE negative
-      if (val < prevValue - 0.05) {  // 0.05 threshold to ignore noise
-        if (currentEvent) {
-          // Close previous event
-          events.push(currentEvent);
-        }
-        
+      // Start a new event when transitioning into negative knock correction from zero
+      if (!currentEvent && val < -0.05) {
         currentEvent = {
           channel: colName,
           peakValue: val,
@@ -418,52 +426,41 @@ function runFindings(session) {
           states: [state],
           recovered: false,
           timeToRecover: 0,
-          deepeningSteps: 1  // First deepening transition counts as 1 step
+          deepeningSteps: 1
         };
-        deepeningSteps = 1;
-      }
-      
-      // Extend current event
-      if (currentEvent) {
-        if (val < currentEvent.peakValue - 0.05) {
-          // Deeper transition (another step of deepening)
-          deepeningSteps++;
-          currentEvent.deepeningSteps = deepeningSteps;
-          currentEvent.peakValue = val;
-        }
-        
+      } else if (currentEvent) {
+        // Extend existing event
         currentEvent.endIdx = i;
         currentEvent.endTime = rows[i].time;
         currentEvent.sampleCount++;
         currentEvent.states.push(state);
         
-        // Check if event recovered (returned to near-zero)
+        // If knock is deepening, update peak and step count on the SAME event
+        if (val < currentEvent.peakValue - 0.05) {
+          currentEvent.deepeningSteps++;
+          currentEvent.peakValue = val;
+        }
+        
+        // Track recovery towards zero
         if (val >= -0.5 && currentEvent.peakValue < -1.0) {
           currentEvent.recovered = true;
           currentEvent.timeToRecover = rows[i].time - currentEvent.startTime;
         }
         
-        // Event closed when value returns to positive or stays recovered
-        if (val >= 0 || (currentEvent.recovered && val > currentEvent.peakValue + 0.5)) {
-          events.push(currentEvent);
+        // Close event when returned to zero / positive
+        if (val >= -0.05) {
+          finalizeEvent(currentEvent);
           currentEvent = null;
-          deepeningSteps = 0;
         }
       }
       
       prevValue = val;
     }
     
-    // Close final event
+    // Close any unclosed event at end of series
     if (currentEvent) {
-      // Calculate modal state
-      const stateFreq = {};
-      for (const s of currentEvent.states) {
-        stateFreq[s] = (stateFreq[s] || 0) + 1;
-      }
-      currentEvent.modalState = Object.entries(stateFreq).reduce((a, b) => b[1] > a[1] ? b : a)[0];
-      
-      events.push(currentEvent);
+      finalizeEvent(currentEvent);
+      currentEvent = null;
     }
     
     return events;
@@ -504,10 +501,14 @@ function runFindings(session) {
                          event.peakValue < THRESHOLDS.FBK_BAD_HIGH &&
                          event.peakValue > THRESHOLDS.FBK_UGLY_THRESHOLD;
       
-      if (isUgly && !uglyEvent) {
-        uglyEvent = event;
-      } else if (isBadKnock && !badEvent) {
-        badEvent = event;
+      if (isUgly) {
+        if (!uglyEvent || event.peakValue < uglyEvent.peakValue) {
+          uglyEvent = event;
+        }
+      } else if (isBadKnock) {
+        if (!badEvent || event.peakValue < badEvent.peakValue) {
+          badEvent = event;
+        }
       } else if (isCruiseNoise) {
         cruiseNoiseEvents.push(event);
       }
@@ -560,10 +561,12 @@ function runFindings(session) {
   // ────────────────────────────────────────────────────────────────────
   // RULE: BOOST_OVERSHOOT (WOT_STEADY only)
   // ────────────────────────────────────────────────────────────────────
-  if (pulls.length === 0) {
-    reportNotEvaluated('BOOST_OVERSHOOT', 'Boost Overshoot', 'No WOT pulls in this log.');
-  } else if (!hasColumn(session, 'boost') || !hasColumn(session, 'boost_target')) {
+  if (!hasColumn(session, 'boost') || !hasColumn(session, 'boost_target')) {
     reportCannotEvaluate('BOOST_OVERSHOOT', 'Boost Overshoot', 'Monitor boost or boost_target not logged.');
+  } else if (rows.every(r => !isDataValid(r, 'boost')) || rows.every(r => !isDataValid(r, 'boost_target'))) {
+    reportCannotEvaluate('BOOST_OVERSHOOT', 'Boost Overshoot', 'Monitor boost or boost_target contains no valid numeric data.');
+  } else if (pulls.length === 0) {
+    reportNotEvaluated('BOOST_OVERSHOOT', 'Boost Overshoot', 'No WOT pulls in this log.');
   } else {
     let worstOvershoot = null;
     let worstOversState = null;
@@ -691,6 +694,8 @@ function runFindings(session) {
   // ────────────────────────────────────────────────────────────────────
   if (!hasColumn(session, 'intake_temp')) {
     reportCannotEvaluate('IAT_DURING_PULL', 'Intake Air Temp', 'Monitor intake_temp not logged.');
+  } else if (rows.every(r => !isDataValid(r, 'intake_temp'))) {
+    reportCannotEvaluate('IAT_DURING_PULL', 'Intake Air Temp', 'Monitor intake_temp contains no valid numeric data.');
   } else {
     let maxIatInPull = -Infinity;
     let maxIatRow = null;

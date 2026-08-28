@@ -163,15 +163,6 @@ async function parseFile(file) {
 
      const missingRecommended = RECOMMENDED_MONITORS.filter(rm => !mapped.includes(rm));
 
-    // CRITICAL VALIDATION: Feedback Knock and Fine Knock Learn must be mapped
-    // If not, the entire log is unreliable for knock analysis
-    const hasFeedbackKnock = mapped.includes('feedback_knock');
-    const hasFineKnockLearn = mapped.includes('fine_knock_learn');
-    
-    if (!hasFeedbackKnock || !hasFineKnockLearn) {
-      return { ok: false, error: { code: 'CRITICAL_COLUMNS_MISSING', message: `Critical knock monitoring columns not found: Feedback Knock ${hasFeedbackKnock ? '✓' : '✗'}, Fine Knock Learn ${hasFineKnockLearn ? '✓' : '✗'}. Cannot reliably analyze this log.` }, session: null, summary: null };
-    }
-
     const rows = [];
     let rowsParsed = 0;
     let rowsSkipped = 0;

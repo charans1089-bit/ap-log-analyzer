@@ -406,6 +406,7 @@
 
   const HEADER_ALIASES = {
     time: ['time', 'timesec', 'times', 'timeelapsed'],
+    boost_target: ['targetboostfinalrel', 'targetboost', 'boosttarget', 'desiredboost', 'targetboostpsi'],
     boost: ['boost', 'boostpsi', 'boostcalc', 'manifoldpressure', 'manifoldpressurepsi', 'mappsi', 'boostpressure'],
     // Do not map raw lambda to AFR here; this path does not perform lambda->AFR conversion.
     afr: ['afr', 'afrwideband', 'afsens1ratio', 'afsens1ratioafr', 'widebandafr', 'airfuelratio', 'afratio'],
@@ -414,7 +415,7 @@
     fine_knock_learn: ['fineknocklearn', 'fineknocklearning', 'fineknocklearndeg', 'fkl'],
     knock_sum: ['knocksum', 'knockcount', 'knocksensor', 'roughnesscyl1'],
     // Avoid alias collisions with airflow-like channels.
-    dam: ['dynadvmultdam', 'dam', 'dynamicadvance multiplier', 'dynamicadvmult'],
+    dam: ['dynadvmult', 'dynadvmultdam', 'dam', 'dynamicadvance multiplier', 'dynamicadvmult'],
     rpm: ['rpm', 'rpmrpm', 'enginespeed', 'enginerpm'],
     calc_load: ['calculatedload', 'engineload', 'loadgrev', 'load'],
     fuel_press: ['snsfuelpressmonitor', 'fuelpressure', 'snsfuelpressmonitorpsi', 'fuelpress', 'highpressurefuelpump'],
@@ -425,7 +426,8 @@
     inj_duty_cycle: ['injdutycycle', 'injectordutycycle', 'idc', 'injdutycyclepercent'],
     af_learning_1: ['aflearning1', 'aflearn1', 'longtermfueltrim', 'ltft'],
     af_correction_1: ['afcorrection1', 'afcorr1', 'shorttermfueltrim', 'stft'],
-    throttle_pos: ['throttlepos', 'throttleposition', 'throttlepospercent', 'tps', 'accelposition', 'accelpos']
+    accel_pos: ['accelposition', 'accelpos', 'acceleratorposition', 'pedalposition'],
+    throttle_pos: ['throttlepos', 'throttleposition', 'throttlepospercent', 'tps']
   };
 
   function matchHeaderKey(rawHeader) {
@@ -528,7 +530,7 @@
     let maxTimingRetardWotDeg = 0;
     let knockEventsCount = 0;
     let damEventsCount = 0;
-    let minDam = 1.0;
+    let minDam = Infinity;
     let peakRpm = 0;
     let peakLoad = 0;
     let minFuelPressure = Infinity;
@@ -541,6 +543,20 @@
     let maxStft = 0;
     let hasAfrInBoostSample = false;
     let hasWotSample = false;
+
+    let hasAnyBoostSample = false;
+    let hasAnyKnockSample = false;
+    let hasAnyDamSample = false;
+    let hasAnyRpmSample = false;
+    let hasAnyLoadSample = false;
+    let hasAnyFuelPressureSample = false;
+    let hasAnyOilTempSample = false;
+    let hasAnyCoolantTempSample = false;
+    let hasAnyIatSample = false;
+    let hasAnyEthanolSample = false;
+    let hasAnyIdcSample = false;
+    let hasAnyLtftSample = false;
+    let hasAnyStftSample = false;
 
     const outOfSpecMoments = [];
     const warnings = [];
@@ -556,6 +572,7 @@
 
       // Boost
       if (Number.isFinite(r.boost)) {
+        hasAnyBoostSample = true;
         if (r.boost > peakBoostPsi) peakBoostPsi = r.boost;
       }
 
@@ -581,11 +598,12 @@
 
       // Timing Retard / Feedback Knock
       let retard = 0;
-      if (Number.isFinite(r.feedback_knock) && r.feedback_knock < 0) {
-        retard = Math.min(retard, r.feedback_knock);
-      }
-      if (Number.isFinite(r.fine_knock_learn) && r.fine_knock_learn < 0) {
-        retard = Math.min(retard, r.fine_knock_learn);
+      const hasFbk = Number.isFinite(r.feedback_knock);
+      const hasFkl = Number.isFinite(r.fine_knock_learn);
+      if (hasFbk || hasFkl) {
+        hasAnyKnockSample = true;
+        if (hasFbk && r.feedback_knock < 0) retard = Math.min(retard, r.feedback_knock);
+        if (hasFkl && r.fine_knock_learn < 0) retard = Math.min(retard, r.fine_knock_learn);
       }
       if (retard < maxTimingRetardDeg) {
         maxTimingRetardDeg = retard;
@@ -594,7 +612,7 @@
         maxTimingRetardWotDeg = retard;
       }
 
-      if (isWotEval && retard <= -1.4) {
+      if (isWotEval && hasAnyKnockSample && retard <= -1.4) {
         knockEventsCount++;
         outOfSpecMoments.push({
           time: timeStr,
@@ -605,11 +623,13 @@
           note: `Knock correction event at ${Math.round(r.rpm || 0)} RPM`
         });
       } else if (isWotEval && Number.isFinite(r.knock_sum) && r.knock_sum > 0) {
+        hasAnyKnockSample = true;
         knockEventsCount++;
       }
 
       // DAM (Dynamic Advance Multiplier)
       if (Number.isFinite(r.dam)) {
+        hasAnyDamSample = true;
         if (r.dam < minDam) minDam = r.dam;
         if (r.dam < 0.95 || (r.dam < 1.0 && r.dam > 0.05)) {
           damEventsCount++;
@@ -627,11 +647,18 @@
       }
 
       // RPM & Load
-      if (Number.isFinite(r.rpm) && r.rpm > peakRpm) peakRpm = r.rpm;
-      if (Number.isFinite(r.calc_load) && r.calc_load > peakLoad) peakLoad = r.calc_load;
+      if (Number.isFinite(r.rpm)) {
+        hasAnyRpmSample = true;
+        if (r.rpm > peakRpm) peakRpm = r.rpm;
+      }
+      if (Number.isFinite(r.calc_load)) {
+        hasAnyLoadSample = true;
+        if (r.calc_load > peakLoad) peakLoad = r.calc_load;
+      }
 
       // Fuel Pressure
       if (Number.isFinite(r.fuel_press) && r.fuel_press > 100) {
+        hasAnyFuelPressureSample = true;
         if (r.fuel_press < minFuelPressure) minFuelPressure = r.fuel_press;
         if (r.fuel_press < 1800 && Number.isFinite(r.boost) && r.boost > 5.0) {
           outOfSpecMoments.push({
@@ -646,21 +673,37 @@
       }
 
       // Temps & Extended Channels
-      if (Number.isFinite(r.oil_temp) && r.oil_temp > maxOilTemp) maxOilTemp = r.oil_temp;
-      if (Number.isFinite(r.coolant_temp) && r.coolant_temp > maxCoolantTemp) maxCoolantTemp = r.coolant_temp;
-      if (Number.isFinite(r.intake_temp) && r.intake_temp > maxIat) maxIat = r.intake_temp;
-      if (Number.isFinite(r.ethanol) && r.ethanol > 0) ethanolPct = Math.max(ethanolPct, r.ethanol);
-      if (Number.isFinite(r.inj_duty_cycle) && r.inj_duty_cycle > peakIdc) peakIdc = r.inj_duty_cycle;
+      if (Number.isFinite(r.oil_temp)) {
+        hasAnyOilTempSample = true;
+        if (r.oil_temp > maxOilTemp) maxOilTemp = r.oil_temp;
+      }
+      if (Number.isFinite(r.coolant_temp)) {
+        hasAnyCoolantTempSample = true;
+        if (r.coolant_temp > maxCoolantTemp) maxCoolantTemp = r.coolant_temp;
+      }
+      if (Number.isFinite(r.intake_temp)) {
+        hasAnyIatSample = true;
+        if (r.intake_temp > maxIat) maxIat = r.intake_temp;
+      }
+      if (Number.isFinite(r.ethanol) && r.ethanol > 0) {
+        hasAnyEthanolSample = true;
+        ethanolPct = Math.max(ethanolPct, r.ethanol);
+      }
+      if (Number.isFinite(r.inj_duty_cycle)) {
+        hasAnyIdcSample = true;
+        if (r.inj_duty_cycle > peakIdc) peakIdc = r.inj_duty_cycle;
+      }
       if (Number.isFinite(r.af_learning_1)) {
+        hasAnyLtftSample = true;
         if (Math.abs(r.af_learning_1) > Math.abs(maxLtft)) maxLtft = r.af_learning_1;
       }
       if (Number.isFinite(r.af_correction_1)) {
+        hasAnyStftSample = true;
         if (Math.abs(r.af_correction_1) > Math.abs(maxStft)) maxStft = r.af_correction_1;
       }
     });
 
     // Cleanup infinities
-    if (peakBoostPsi === -Infinity) peakBoostPsi = 0;
     if (minAfrInBoost === Infinity) minAfrInBoost = NaN;
     const hasAnyAfrSample = minAfrOverall !== Infinity;
     const afrNotEvaluatedReason = hasAnyAfrSample
@@ -668,51 +711,62 @@
       : (hasLambdaColumn
           ? 'Monitor afr not logged (lambda logged, AFR not logged, no conversion applied).'
           : 'Monitor afr not logged.');
-    if (minFuelPressure === Infinity) minFuelPressure = 2150;
-    if (maxOilTemp === -Infinity) maxOilTemp = 210;
-    if (maxCoolantTemp === -Infinity) maxCoolantTemp = 190;
-    if (maxIat === -Infinity) maxIat = 90;
+    const wotNotEvaluatedReason = 'No sustained WOT detected, knock and timing not assessed.';
+    const knockNotLoggedReason = 'Monitor feedback_knock not logged.';
 
     // Build Warnings List
-    if (Number.isFinite(minDam) && minDam < 0.95) {
+    if (hasAnyDamSample && Number.isFinite(minDam) && minDam < 0.95) {
       warnings.push(`DAM dropped to ${minDam.toFixed(3)} (${damEventsCount} rows affected). Engine is actively pulling global timing due to detected knock.`);
     }
-    const timingForVerdict = hasWotSample ? maxTimingRetardWotDeg : 0;
-    if (timingForVerdict <= -2.8) {
-      warnings.push(`Severe timing retard detected during WOT (${timingForVerdict.toFixed(2)}° max correction). Check for fuel octane degradation or spark plug wear.`);
-    } else if (timingForVerdict < -1.0) {
-      warnings.push(`Moderate timing retard observed during WOT (${timingForVerdict.toFixed(2)}°). Minor knock correction active.`);
+    if (hasWotSample && hasAnyKnockSample && Number.isFinite(maxTimingRetardWotDeg)) {
+      if (maxTimingRetardWotDeg <= -2.8) {
+        warnings.push(`Severe timing retard detected during WOT (${maxTimingRetardWotDeg.toFixed(2)}° max correction). Check for fuel octane degradation or spark plug wear.`);
+      } else if (maxTimingRetardWotDeg < -1.0) {
+        warnings.push(`Moderate timing retard observed during WOT (${maxTimingRetardWotDeg.toFixed(2)}°). Minor knock correction active.`);
+      }
     }
-    if (hasAfrInBoostSample && minAfrInBoost > 12.2 && peakBoostPsi > 5.0) {
+    if (hasWotSample && hasAfrInBoostSample && minAfrInBoost > 12.2 && Number.isFinite(peakBoostPsi) && peakBoostPsi > 5.0) {
       warnings.push(`Air/Fuel Ratio leaned out to ${minAfrInBoost.toFixed(2)} under boost (> 12.2 AFR target). Potential fueling restriction.`);
     }
-    if (maxOilTemp > 240) {
+    if (hasAnyOilTempSample && maxOilTemp > 240) {
       warnings.push(`High oil temperature reached ${Math.round(maxOilTemp)}°F. Consider cooling laps or an aftermarket oil cooler.`);
     }
-    if (peakIdc > 90) {
+    if (hasAnyIdcSample && peakIdc > 90) {
       warnings.push(`High Injector Duty Cycle reached ${peakIdc.toFixed(1)}% (> 90% threshold). Fueling system near capacity.`);
     }
-    if (Math.abs(maxLtft) > 8.0) {
+    if (hasAnyLtftSample && Math.abs(maxLtft) > 8.0) {
       warnings.push(`Long Term Fuel Trim drift observed (${maxLtft > 0 ? '+' : ''}${maxLtft.toFixed(1)}%). Check for intake air leaks.`);
     }
 
     // VERDICT CALCULATION (Per specification)
-    // "Good tune" = knock count is 0 AND DAM events < 3 AND all metrics in safe range
-    // "Watch knock" = knock count > 0 OR DAM events >= 3
-    // "Check tune" = any critical metric out of range (AFR in boost, severe timing, DAM < 0.85)
-    let verdict = 'good';
-    let verdictLabel = 'Good tune';
+    let verdict = 'not_evaluated';
+    let verdictLabel = 'Not Evaluated';
 
-    const hasCriticalAFR = hasAnyAfrSample && hasAfrInBoostSample && ((minAfrInBoost > 12.5 && peakBoostPsi > 4.0) || minAfrInBoost < 10.2);
-    const hasCriticalTiming = timingForVerdict <= -2.8;
-    const hasCriticalDAM = Number.isFinite(minDam) && minDam < 0.85;
+    const hasCriticalAFR = hasWotSample && hasAnyAfrSample && hasAfrInBoostSample && ((minAfrInBoost > 12.5 && Number.isFinite(peakBoostPsi) && peakBoostPsi > 4.0) || minAfrInBoost < 10.2);
+    const hasCriticalTiming = hasWotSample && hasAnyKnockSample && Number.isFinite(maxTimingRetardWotDeg) && maxTimingRetardWotDeg <= -2.8;
+    const hasCriticalDAM = hasAnyDamSample && Number.isFinite(minDam) && minDam < 0.85;
 
     if (hasCriticalAFR || hasCriticalTiming || hasCriticalDAM) {
       verdict = 'check';
       verdictLabel = 'Check tune';
-    } else if (knockEventsCount > 0 || damEventsCount >= 3 || timingForVerdict < -1.0 || (Number.isFinite(minDam) && minDam < 0.95)) {
+    } else if ((hasWotSample && hasAnyKnockSample && knockEventsCount > 0) ||
+               (hasAnyDamSample && damEventsCount >= 3) ||
+               (hasWotSample && hasAnyKnockSample && Number.isFinite(maxTimingRetardWotDeg) && maxTimingRetardWotDeg < -1.0) ||
+               (hasAnyDamSample && Number.isFinite(minDam) && minDam < 0.95)) {
       verdict = 'watch';
       verdictLabel = 'Watch knock';
+    } else if (!hasWotSample) {
+      verdict = 'not_evaluated';
+      verdictLabel = 'Not Evaluated (No WOT pull)';
+    } else if (!hasAnyAfrSample) {
+      verdict = 'not_evaluated';
+      verdictLabel = 'Not Evaluated (AFR not logged)';
+    } else if (!hasAnyKnockSample) {
+      verdict = 'not_evaluated';
+      verdictLabel = 'Not Evaluated (Knock channels not logged)';
+    } else if (!hasAnyDamSample) {
+      verdict = 'not_evaluated';
+      verdictLabel = 'Not Evaluated (DAM not logged)';
     } else {
       verdict = 'good';
       verdictLabel = 'Good tune';
@@ -735,41 +789,51 @@
       verdict,
       verdictLabel,
       metrics: {
-        peakBoostPsi,
+        peakBoostPsi: hasAnyBoostSample ? peakBoostPsi : null,
         minAfr: hasAnyAfrSample ? (Number.isFinite(minAfrInBoost) ? minAfrInBoost : minAfrOverall) : null,
-        minAfrInBoost: Number.isFinite(minAfrInBoost) ? minAfrInBoost : NaN,
-        hasAfrInBoostSample,
+        minAfrInBoost: (hasWotSample && Number.isFinite(minAfrInBoost)) ? minAfrInBoost : NaN,
+        hasAfrInBoostSample: hasWotSample ? hasAfrInBoostSample : false,
         hasAnyAfrSample,
-        maxTimingRetardDeg,
-        maxTimingRetardWotDeg,
+        maxTimingRetardDeg: hasAnyKnockSample ? maxTimingRetardDeg : null,
+        maxTimingRetardWotDeg: (hasWotSample && hasAnyKnockSample) ? maxTimingRetardWotDeg : null,
         hasWotSample,
-        knockCount: knockEventsCount,
-        damEvents: damEventsCount,
-        minDam,
-        peakRpm,
-        peakLoad,
-        minFuelPressure,
-        maxOilTemp,
-        maxCoolantTemp,
-        maxIat,
-        ethanolPct,
-        peakIdc,
-        maxLtft,
-        maxStft
+        knockCount: (hasWotSample && hasAnyKnockSample) ? knockEventsCount : null,
+        damEvents: hasAnyDamSample ? damEventsCount : null,
+        minDam: hasAnyDamSample ? minDam : null,
+        peakRpm: hasAnyRpmSample ? peakRpm : null,
+        peakLoad: hasAnyLoadSample ? peakLoad : null,
+        minFuelPressure: hasAnyFuelPressureSample ? minFuelPressure : null,
+        maxOilTemp: hasAnyOilTempSample ? maxOilTemp : null,
+        maxCoolantTemp: hasAnyCoolantTempSample ? maxCoolantTemp : null,
+        maxIat: hasAnyIatSample ? maxIat : null,
+        ethanolPct: hasAnyEthanolSample ? ethanolPct : null,
+        peakIdc: hasAnyIdcSample ? peakIdc : null,
+        maxLtft: hasAnyLtftSample ? maxLtft : null,
+        maxStft: hasAnyStftSample ? maxStft : null
       },
       safeRanges: {
         afr: hasAnyAfrSample ? '11.0 – 13.5 (under boost: 11.2–12.0)' : `NOT EVALUATED: ${afrNotEvaluatedReason}`,
-        timing: '>= -1.00°',
-        dam: '1.000 (>= 0.95)',
-        knock: '0 counts',
-        fuelPressure: '> 2000 PSI under load',
+        timing: (hasWotSample && hasAnyKnockSample) ? '>= -1.00°' : `NOT EVALUATED: ${!hasAnyKnockSample ? knockNotLoggedReason : wotNotEvaluatedReason}`,
+        dam: hasAnyDamSample ? '1.000 (>= 0.95)' : 'NOT EVALUATED: Monitor dam not logged.',
+        knock: (hasWotSample && hasAnyKnockSample) ? '0 counts' : `NOT EVALUATED: ${!hasAnyKnockSample ? knockNotLoggedReason : wotNotEvaluatedReason}`,
+        boost: 'NOT EVALUATED: Target-relative boost error tracking not evaluated in report generator.',
         oilTemp: '< 235°F',
         idc: '< 85%'
       },
       evaluation: {
         afr: hasAnyAfrSample
           ? { status: 'evaluated', reason: '' }
-          : { status: 'not_evaluated', reason: afrNotEvaluatedReason }
+          : { status: 'not_evaluated', reason: afrNotEvaluatedReason },
+        timing: (hasWotSample && hasAnyKnockSample)
+          ? { status: 'evaluated', reason: '' }
+          : { status: 'not_evaluated', reason: !hasAnyKnockSample ? knockNotLoggedReason : wotNotEvaluatedReason },
+        knock: (hasWotSample && hasAnyKnockSample)
+          ? { status: 'evaluated', reason: '' }
+          : { status: 'not_evaluated', reason: !hasAnyKnockSample ? knockNotLoggedReason : wotNotEvaluatedReason },
+        boost: {
+          status: 'not_evaluated',
+          reason: 'Target-relative boost error tracking not evaluated in report generator.'
+        }
       },
       warnings,
       outOfSpecMoments
@@ -972,7 +1036,11 @@
 
     // Verdict Marquee
     DOM.verdictMarquee.className = `verdict-marquee verdict-${report.verdict}`;
-    DOM.verdictTag.textContent = report.verdict === 'good' ? '★ CALIBRATION SAFE ★' : (report.verdict === 'watch' ? '⚠ MONITOR ACTIVE ⚠' : '⚡ CRITICAL ALERT ⚡');
+    DOM.verdictTag.textContent = report.verdict === 'good'
+      ? '★ CALIBRATION SAFE ★'
+      : (report.verdict === 'watch'
+          ? '⚠ MONITOR ACTIVE ⚠'
+          : (report.verdict === 'check' ? '⚡ CRITICAL ALERT ⚡' : '⏸ NOT EVALUATED (NO WOT)'));
     DOM.verdictText.textContent = report.verdictLabel;
 
     // HUD values
@@ -982,9 +1050,19 @@
     DOM.hudMinAfr.textContent = afrEvaluated && Number.isFinite(report.metrics.minAfr)
       ? `${report.metrics.minAfr.toFixed(2)}:1`
       : `NOT EVALUATED: ${afrReason || 'Monitor afr not logged.'}`;
-    const timingDisplay = report.metrics.hasWotSample ? report.metrics.maxTimingRetardWotDeg : report.metrics.maxTimingRetardDeg;
-    DOM.hudTimingRetard.textContent = `${timingDisplay.toFixed(2)}°`;
-    DOM.hudKnockCount.textContent = `${report.metrics.knockCount} EVENTS`;
+
+    const timingEvaluated = !report.evaluation || !report.evaluation.timing || report.evaluation.timing.status === 'evaluated';
+    const timingReason = report.evaluation && report.evaluation.timing ? report.evaluation.timing.reason : '';
+    DOM.hudTimingRetard.textContent = timingEvaluated && Number.isFinite(report.metrics.maxTimingRetardWotDeg)
+      ? `${report.metrics.maxTimingRetardWotDeg.toFixed(2)}°`
+      : `NOT EVALUATED: ${timingReason || 'No sustained WOT detected.'}`;
+
+    const knockEvaluated = !report.evaluation || !report.evaluation.knock || report.evaluation.knock.status === 'evaluated';
+    const knockReason = report.evaluation && report.evaluation.knock ? report.evaluation.knock.reason : '';
+    DOM.hudKnockCount.textContent = knockEvaluated && report.metrics.knockCount !== null && report.metrics.knockCount !== undefined
+      ? `${report.metrics.knockCount} EVENTS`
+      : `NOT EVALUATED: ${knockReason || 'No sustained WOT detected.'}`;
+
     DOM.hudDamEvents.textContent = `${report.metrics.minDam.toFixed(3)} (${report.metrics.damEvents} rows)`;
     DOM.hudPeakRpm.textContent = `${Math.round(report.metrics.peakRpm)} RPM`;
 
@@ -996,25 +1074,32 @@
     const damCard = DOM.hudDamEvents.closest('.hud-card');
 
     const afrHazard = afrEvaluated && report.metrics.hasAfrInBoostSample && Number.isFinite(report.metrics.minAfrInBoost) && report.metrics.minAfrInBoost > 12.5;
-    if (afrCard) afrCard.className = `hud-card ${afrHazard ? 'hazard-card' : 'safe-card'}`;
-    if (retardCard) retardCard.className = `hud-card ${timingDisplay <= -2.8 ? 'hazard-card' : (timingDisplay < 0 ? 'safe-card' : '')}`;
-    if (knockCard) knockCard.className = `hud-card ${report.metrics.knockCount > 0 ? 'hazard-card' : 'safe-card'}`;
+    if (afrCard) afrCard.className = `hud-card ${afrHazard ? 'hazard-card' : (afrEvaluated ? 'safe-card' : '')}`;
+    if (retardCard) retardCard.className = `hud-card ${timingEvaluated ? (report.metrics.maxTimingRetardWotDeg <= -2.8 ? 'hazard-card' : (report.metrics.maxTimingRetardWotDeg < 0 ? 'safe-card' : '')) : ''}`;
+    if (knockCard) knockCard.className = `hud-card ${knockEvaluated ? (report.metrics.knockCount > 0 ? 'hazard-card' : 'safe-card') : ''}`;
     if (damCard) damCard.className = `hud-card ${report.metrics.minDam < 0.95 ? 'hazard-card' : 'safe-card'}`;
 
     if (afrCard && !afrEvaluated) {
       const afrTarget = afrCard.querySelector('.hud-target');
-      if (afrTarget) {
-        afrTarget.textContent = `NOT EVALUATED: ${afrReason || 'Monitor afr not logged.'}`;
-      }
+      if (afrTarget) afrTarget.textContent = `NOT EVALUATED: ${afrReason || 'Monitor afr not logged.'}`;
+    }
+    if (retardCard && !timingEvaluated) {
+      const retardTarget = retardCard.querySelector('.hud-target');
+      if (retardTarget) retardTarget.textContent = `NOT EVALUATED: ${timingReason || 'No sustained WOT detected.'}`;
+    }
+    if (knockCard && !knockEvaluated) {
+      const knockTarget = knockCard.querySelector('.hud-target');
+      if (knockTarget) knockTarget.textContent = `NOT EVALUATED: ${knockReason || 'No sustained WOT detected.'}`;
     }
 
     // Warnings ticker
     DOM.warningsTicker.innerHTML = '';
     if (report.warnings.length === 0) {
+      const isGood = report.verdict === 'good';
       DOM.warningsTicker.innerHTML = `
         <div class="ticker-item">
-          <span class="ticker-badge badge-ok">SAFE</span>
-          <span class="ticker-text">All key FA24 telemetry channels are within optimal operating parameters. No knock or lean events detected.</span>
+          <span class="ticker-badge ${isGood ? 'badge-ok' : 'badge-warn'}">${isGood ? 'SAFE' : 'INFO'}</span>
+          <span class="ticker-text">${isGood ? 'All key FA24 telemetry channels are within optimal operating parameters. No knock or lean events detected.' : 'No critical faults triggered. WOT-dependent channels were not evaluated.'}</span>
         </div>
       `;
     } else {
@@ -1051,7 +1136,8 @@
     // Play appropriate sound
     if (report.verdict === 'good') SoundFX.good();
     else if (report.verdict === 'watch') SoundFX.warn();
-    else SoundFX.hazard();
+    else if (report.verdict === 'check') SoundFX.hazard();
+    else SoundFX.click();
 
     // Scroll smoothly to report
     DOM.reportArea.scrollIntoView({ behavior: 'smooth' });
@@ -1201,8 +1287,16 @@
     const repBAfrEvaluated = !repB.evaluation || !repB.evaluation.afr || repB.evaluation.afr.status === 'evaluated';
     const afrDeltaAvailable = repAAfrEvaluated && repBAfrEvaluated && Number.isFinite(repA.metrics.minAfr) && Number.isFinite(repB.metrics.minAfr);
     const deltaAfr = afrDeltaAvailable ? (repB.metrics.minAfr - repA.metrics.minAfr) : null;
-    const deltaKnock = repB.metrics.knockCount - repA.metrics.knockCount;
-    const deltaTiming = repB.metrics.maxTimingRetardDeg - repA.metrics.maxTimingRetardDeg;
+
+    const repATimingEval = !repA.evaluation || !repA.evaluation.timing || repA.evaluation.timing.status === 'evaluated';
+    const repBTimingEval = !repB.evaluation || !repB.evaluation.timing || repB.evaluation.timing.status === 'evaluated';
+    const timingDeltaAvailable = repATimingEval && repBTimingEval && Number.isFinite(repA.metrics.maxTimingRetardWotDeg) && Number.isFinite(repB.metrics.maxTimingRetardWotDeg);
+    const deltaTiming = timingDeltaAvailable ? (repB.metrics.maxTimingRetardWotDeg - repA.metrics.maxTimingRetardWotDeg) : null;
+
+    const repAKnockEval = !repA.evaluation || !repA.evaluation.knock || repA.evaluation.knock.status === 'evaluated';
+    const repBKnockEval = !repB.evaluation || !repB.evaluation.knock || repB.evaluation.knock.status === 'evaluated';
+    const knockDeltaAvailable = repAKnockEval && repBKnockEval && repA.metrics.knockCount !== null && repB.metrics.knockCount !== null;
+    const deltaKnock = knockDeltaAvailable ? (repB.metrics.knockCount - repA.metrics.knockCount) : null;
 
     DOM.compareResults.innerHTML = `
       <div class="compare-grid">
@@ -1211,8 +1305,8 @@
           <div class="compare-stat-row"><span>Verdict</span><strong class="${repA.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${escapeHtml(repA.verdictLabel)}</strong></div>
           <div class="compare-stat-row"><span>Peak Boost</span><strong>${repA.metrics.peakBoostPsi.toFixed(1)} PSI</strong></div>
           <div class="compare-stat-row"><span>Min AFR</span><strong>${repAAfrEvaluated && Number.isFinite(repA.metrics.minAfr) ? repA.metrics.minAfr.toFixed(2) : `NOT EVALUATED: ${escapeHtml(repA.evaluation?.afr?.reason || 'Monitor afr not logged.')}`}</strong></div>
-          <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repA.metrics.maxTimingRetardDeg.toFixed(2)}°</strong></div>
-          <div class="compare-stat-row"><span>Knock Events</span><strong>${repA.metrics.knockCount}</strong></div>
+          <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repATimingEval && Number.isFinite(repA.metrics.maxTimingRetardWotDeg) ? `${repA.metrics.maxTimingRetardWotDeg.toFixed(2)}°` : `NOT EVALUATED: ${escapeHtml(repA.evaluation?.timing?.reason || 'No sustained WOT detected.')}`}</strong></div>
+          <div class="compare-stat-row"><span>Knock Events</span><strong>${repAKnockEval && repA.metrics.knockCount !== null ? repA.metrics.knockCount : `NOT EVALUATED: ${escapeHtml(repA.evaluation?.knock?.reason || 'No sustained WOT detected.')}`}</strong></div>
           <div class="compare-stat-row"><span>Min DAM</span><strong>${repA.metrics.minDam.toFixed(3)}</strong></div>
         </div>
 
@@ -1221,8 +1315,8 @@
           <div class="compare-stat-row"><span>Verdict</span><strong class="${repB.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${escapeHtml(repB.verdictLabel)}</strong></div>
           <div class="compare-stat-row"><span>Peak Boost</span><strong>${repB.metrics.peakBoostPsi.toFixed(1)} PSI <span class="${deltaBoost >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaBoost >= 0 ? '+' : ''}${deltaBoost.toFixed(1)})</span></strong></div>
           <div class="compare-stat-row"><span>Min AFR</span><strong>${repBAfrEvaluated && Number.isFinite(repB.metrics.minAfr) ? repB.metrics.minAfr.toFixed(2) : `NOT EVALUATED: ${escapeHtml(repB.evaluation?.afr?.reason || 'Monitor afr not logged.')}`} ${afrDeltaAvailable ? `<span class="${deltaAfr <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaAfr >= 0 ? '+' : ''}${deltaAfr.toFixed(2)})</span>` : ''}</strong></div>
-          <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repB.metrics.maxTimingRetardDeg.toFixed(2)}° <span class="${deltaTiming >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaTiming >= 0 ? '+' : ''}${deltaTiming.toFixed(2)})</span></strong></div>
-          <div class="compare-stat-row"><span>Knock Events</span><strong>${repB.metrics.knockCount} <span class="${deltaKnock <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaKnock >= 0 ? '+' : ''}${deltaKnock})</span></strong></div>
+          <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repBTimingEval && Number.isFinite(repB.metrics.maxTimingRetardWotDeg) ? `${repB.metrics.maxTimingRetardWotDeg.toFixed(2)}°` : `NOT EVALUATED: ${escapeHtml(repB.evaluation?.timing?.reason || 'No sustained WOT detected.')}`} ${timingDeltaAvailable ? `<span class="${deltaTiming >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaTiming >= 0 ? '+' : ''}${deltaTiming.toFixed(2)})</span>` : ''}</strong></div>
+          <div class="compare-stat-row"><span>Knock Events</span><strong>${repBKnockEval && repB.metrics.knockCount !== null ? repB.metrics.knockCount : `NOT EVALUATED: ${escapeHtml(repB.evaluation?.knock?.reason || 'No sustained WOT detected.')}`} ${knockDeltaAvailable ? `<span class="${deltaKnock <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaKnock >= 0 ? '+' : ''}${deltaKnock})</span>` : ''}</strong></div>
           <div class="compare-stat-row"><span>Min DAM</span><strong>${repB.metrics.minDam.toFixed(3)}</strong></div>
         </div>
       </div>

@@ -129,6 +129,14 @@
     const afrCsvValue = (afrEvaluated && Number.isFinite(m.minAfr))
       ? m.minAfr.toFixed(2)
       : `NOT EVALUATED: ${(report.evaluation && report.evaluation.afr && report.evaluation.afr.reason) || 'Monitor afr not logged.'}`;
+    const timingEvaluated = !report.evaluation || !report.evaluation.timing || report.evaluation.timing.status === 'evaluated';
+    const timingCsvValue = (timingEvaluated && Number.isFinite(m.maxTimingRetardWotDeg))
+      ? m.maxTimingRetardWotDeg.toFixed(2)
+      : `NOT EVALUATED: ${(report.evaluation && report.evaluation.timing && report.evaluation.timing.reason) || 'No sustained WOT detected.'}`;
+    const knockEvaluated = !report.evaluation || !report.evaluation.knock || report.evaluation.knock.status === 'evaluated';
+    const knockCsvValue = (knockEvaluated && m.knockCount !== null && m.knockCount !== undefined)
+      ? m.knockCount
+      : `NOT EVALUATED: ${(report.evaluation && report.evaluation.knock && report.evaluation.knock.reason) || 'No sustained WOT detected.'}`;
     const values = [
       escapeCsv(new Date(report.timestamp).toLocaleString()),
       escapeCsv(report.filename),
@@ -137,8 +145,8 @@
       report.totalRows,
       m.peakBoostPsi.toFixed(1),
       escapeCsv(afrCsvValue),
-      m.maxTimingRetardDeg.toFixed(2),
-      m.knockCount,
+      escapeCsv(timingCsvValue),
+      escapeCsv(knockCsvValue),
       m.damEvents,
       m.minDam.toFixed(3),
       Math.round(m.peakRpm),
@@ -251,6 +259,9 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
 
     try {
       const m = report.metrics;
+      const afrEvaluated = !report.evaluation || !report.evaluation.afr || report.evaluation.afr.status === 'evaluated';
+      const timingEvaluated = !report.evaluation || !report.evaluation.timing || report.evaluation.timing.status === 'evaluated';
+      const knockEvaluated = !report.evaluation || !report.evaluation.knock || report.evaluation.knock.status === 'evaluated';
       const payload = {
         timestamp: new Date(report.timestamp).toLocaleString(),
         filename: report.filename,
@@ -258,9 +269,9 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
         durationSec: report.durationSec.toFixed(2),
         totalRows: report.totalRows,
         peakBoostPsi: m.peakBoostPsi.toFixed(1),
-        minAfr: m.minAfr.toFixed(2),
-        maxTimingRetardDeg: m.maxTimingRetardDeg.toFixed(2),
-        knockCount: m.knockCount,
+        minAfr: (afrEvaluated && Number.isFinite(m.minAfr)) ? m.minAfr.toFixed(2) : 'NOT EVALUATED',
+        maxTimingRetardDeg: (timingEvaluated && Number.isFinite(m.maxTimingRetardWotDeg)) ? m.maxTimingRetardWotDeg.toFixed(2) : 'NOT EVALUATED',
+        knockCount: (knockEvaluated && m.knockCount !== null && m.knockCount !== undefined) ? m.knockCount : 'NOT EVALUATED',
         damEvents: m.damEvents,
         minDam: m.minDam.toFixed(3),
         peakRpm: Math.round(m.peakRpm),
@@ -352,6 +363,9 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
   function copySheetsRow(report) {
     if (!report) return false;
     const m = report.metrics;
+    const afrEvaluated = !report.evaluation || !report.evaluation.afr || report.evaluation.afr.status === 'evaluated';
+    const timingEvaluated = !report.evaluation || !report.evaluation.timing || report.evaluation.timing.status === 'evaluated';
+    const knockEvaluated = !report.evaluation || !report.evaluation.knock || report.evaluation.knock.status === 'evaluated';
     const row = [
       new Date(report.timestamp).toLocaleString(),
       report.filename,
@@ -359,9 +373,9 @@ gh repo clone <your-username>/ap-log-analyzer && mkdir -p ./ap-log-analyzer/repo
       report.durationSec.toFixed(2),
       report.totalRows,
       m.peakBoostPsi.toFixed(1),
-      m.minAfr.toFixed(2),
-      m.maxTimingRetardDeg.toFixed(2),
-      m.knockCount,
+      (afrEvaluated && Number.isFinite(m.minAfr)) ? m.minAfr.toFixed(2) : 'NOT EVALUATED',
+      (timingEvaluated && Number.isFinite(m.maxTimingRetardWotDeg)) ? m.maxTimingRetardWotDeg.toFixed(2) : 'NOT EVALUATED',
+      (knockEvaluated && m.knockCount !== null && m.knockCount !== undefined) ? m.knockCount : 'NOT EVALUATED',
       m.damEvents,
       m.minDam.toFixed(3),
       Math.round(m.peakRpm),

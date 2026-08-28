@@ -1,0 +1,909 @@
+{
+  "fixture_cruise_only.csv": {
+    "filename": "fixture_cruise_only.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "not_evaluated",
+      "verdictLabel": "Not Evaluated (No WOT pull)",
+      "hasWotSample": false,
+      "knockCount": null,
+      "maxTimingRetardWotDeg": null,
+      "minAfr": 14.7,
+      "minAfrInBoost": null,
+      "peakBoostPsi": -10.8,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "not_evaluated",
+          "reason": "No sustained WOT detected, knock and timing not assessed."
+        },
+        "knock": {
+          "status": "not_evaluated",
+          "reason": "No sustained WOT detected, knock and timing not assessed."
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 0,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "not_evaluated",
+          "ruleId": "AFR_LEAN",
+          "label": "AFR vs Commanded",
+          "message": "No WOT pulls detected in this log."
+        },
+        {
+          "severity": "not_evaluated",
+          "ruleId": "BOOST_OVERSHOOT",
+          "label": "Boost Overshoot",
+          "message": "No WOT pulls in this log."
+        }
+      ]
+    }
+  },
+  "fixture_throttle_stab.csv": {
+    "filename": "fixture_throttle_stab.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "not_evaluated",
+      "verdictLabel": "Not Evaluated (No WOT pull)",
+      "hasWotSample": false,
+      "knockCount": null,
+      "maxTimingRetardWotDeg": null,
+      "minAfr": 14.7,
+      "minAfrInBoost": null,
+      "peakBoostPsi": 0.4,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "not_evaluated",
+          "reason": "No sustained WOT detected, knock and timing not assessed."
+        },
+        "knock": {
+          "status": "not_evaluated",
+          "reason": "No sustained WOT detected, knock and timing not assessed."
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 0,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "not_evaluated",
+          "ruleId": "AFR_LEAN",
+          "label": "AFR vs Commanded",
+          "message": "No WOT pulls detected in this log."
+        },
+        {
+          "severity": "not_evaluated",
+          "ruleId": "BOOST_OVERSHOOT",
+          "label": "Boost Overshoot",
+          "message": "No WOT pulls in this log."
+        }
+      ]
+    }
+  },
+  "fixture_fuel_cut_recovery.csv": {
+    "filename": "fixture_fuel_cut_recovery.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.25,
+      "minAfrInBoost": 11.25,
+      "peakBoostPsi": 16.2,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 2,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 0.18,
+          "expected": 0,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_high_rpm_target_ramp.csv": {
+    "filename": "fixture_high_rpm_target_ramp.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 17.1,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 2,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 12.16,
+          "expected": 12.06,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_real_load_knock.csv": {
+    "filename": "fixture_real_load_knock.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "check",
+      "verdictLabel": "Check tune",
+      "hasWotSample": true,
+      "knockCount": 5,
+      "maxTimingRetardWotDeg": -3.5,
+      "minAfr": 11.35,
+      "minAfrInBoost": 11.35,
+      "peakBoostPsi": 16.8,
+      "warnings": [
+        "Severe timing retard detected during WOT (-3.50\u00b0 max correction). Check for fuel octane degradation or spark plug wear."
+      ],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "bad",
+          "ruleId": "FEEDBACK_KNOCK_BAD",
+          "label": "Knock detected during WOT",
+          "observed": -3.5,
+          "expected": -2,
+          "message": "feedback_knock -3.50\u00b0 during WOT. Peak 3.50\u00b0, 7 samples. Monitor on next session."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.8,
+          "expected": 16.8,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_boost_overshoot.csv": {
+    "filename": "fixture_boost_overshoot.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.4,
+      "minAfrInBoost": 11.4,
+      "peakBoostPsi": 17.4,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 2,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "bad",
+          "ruleId": "BOOST_OVERSHOOT",
+          "label": "Boost overshoot detected",
+          "observed": 17.4,
+          "expected": 15,
+          "message": "Boost reached 17.40 psi, overshooting target 15.00 psi by 2.40 psi. [DTC: P0234 / P226B]"
+        }
+      ]
+    }
+  },
+  "fixture_dam_drop_failsafe.csv": {
+    "filename": "fixture_dam_drop_failsafe.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "check",
+      "verdictLabel": "Check tune",
+      "hasWotSample": true,
+      "knockCount": 5,
+      "maxTimingRetardWotDeg": -2.81,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 17,
+      "warnings": [
+        "DAM dropped to 0.938 (110 rows affected). Engine is actively pulling global timing due to detected knock.",
+        "Severe timing retard detected during WOT (-2.81\u00b0 max correction). Check for fuel octane degradation or spark plug wear."
+      ],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "ugly",
+          "ruleId": "DAM_BELOW_1",
+          "label": "DAM dropped below 1.0",
+          "observed": 0.938,
+          "expected": 1,
+          "message": "DAM < 1.0 indicates sustained knock detection and global advance reduction. Worst: 0.938 at 1.05s. Boost 16.80 vs target 17.00 (error -0.20). AFR 11.30 vs commanded 11.30 (deviation 0.00). Address before driving hard."
+        },
+        {
+          "severity": "bad",
+          "ruleId": "FEEDBACK_KNOCK_BAD",
+          "label": "Knock detected during WOT",
+          "observed": -2.81,
+          "expected": -2,
+          "message": "feedback_knock -2.81\u00b0 during WOT. Peak 2.81\u00b0, 6 samples. Monitor on next session."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 13.1,
+          "expected": 13,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_missing_knock_channels.csv": {
+    "filename": "fixture_missing_knock_channels.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "not_evaluated",
+      "verdictLabel": "Not Evaluated (Knock channels not logged)",
+      "hasWotSample": true,
+      "knockCount": null,
+      "maxTimingRetardWotDeg": null,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "not_evaluated",
+          "reason": "Monitor feedback_knock not logged."
+        },
+        "knock": {
+          "status": "not_evaluated",
+          "reason": "Monitor feedback_knock not logged."
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "cannot_evaluate",
+          "ruleId": "FEEDBACK_KNOCK",
+          "label": "Feedback Knock",
+          "message": "Monitor feedback_knock not logged."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_semicolon_delimited.csv": {
+    "filename": "fixture_semicolon_delimited.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 2,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_gearshift_target_collapse.csv": {
+    "filename": "fixture_gearshift_target_collapse.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 2,
+      "totalFindings": 2,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_decel_af_correction.csv": {
+    "filename": "fixture_decel_af_correction.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "not_evaluated",
+      "verdictLabel": "Not Evaluated (No WOT pull)",
+      "hasWotSample": false,
+      "knockCount": null,
+      "maxTimingRetardWotDeg": null,
+      "minAfr": 14.7,
+      "minAfrInBoost": null,
+      "peakBoostPsi": -10.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "not_evaluated",
+          "reason": "No sustained WOT detected, knock and timing not assessed."
+        },
+        "knock": {
+          "status": "not_evaluated",
+          "reason": "No sustained WOT detected, knock and timing not assessed."
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 0,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "not_evaluated",
+          "ruleId": "AFR_LEAN",
+          "label": "AFR vs Commanded",
+          "message": "No WOT pulls detected in this log."
+        },
+        {
+          "severity": "not_evaluated",
+          "ruleId": "BOOST_OVERSHOOT",
+          "label": "Boost Overshoot",
+          "message": "No WOT pulls in this log."
+        }
+      ]
+    }
+  },
+  "fixture_degree_symbol_encoding.csv": {
+    "filename": "fixture_degree_symbol_encoding.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 2,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_lambda_only.csv": {
+    "filename": "fixture_lambda_only.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "not_evaluated",
+      "verdictLabel": "Not Evaluated (AFR not logged)",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": null,
+      "minAfrInBoost": null,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "not_evaluated",
+          "reason": "Monitor afr not logged (lambda logged, AFR not logged, no conversion applied)."
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "cannot_evaluate",
+          "ruleId": "AFR_LEAN",
+          "label": "AFR vs Commanded",
+          "message": "Monitor afr or comm_fuel_final not logged."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_afr_column_empty.csv": {
+    "filename": "fixture_afr_column_empty.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "not_evaluated",
+      "verdictLabel": "Not Evaluated (AFR not logged)",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": null,
+      "minAfrInBoost": null,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "not_evaluated",
+          "reason": "Monitor afr not logged."
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 3,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "cannot_evaluate",
+          "ruleId": "AFR_LEAN",
+          "label": "AFR vs Commanded",
+          "message": "Monitor afr or comm_fuel_final contains no valid numeric data."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        }
+      ]
+    }
+  },
+  "fixture_ugly_knock_non_wot.csv": {
+    "filename": "fixture_ugly_knock_non_wot.csv",
+    "reportGenerator": {
+      "ok": true,
+      "verdict": "good",
+      "verdictLabel": "Good tune",
+      "hasWotSample": true,
+      "knockCount": 0,
+      "maxTimingRetardWotDeg": 0,
+      "minAfr": 11.3,
+      "minAfrInBoost": 11.3,
+      "peakBoostPsi": 16.5,
+      "warnings": [],
+      "evaluation": {
+        "afr": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "timing": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "knock": {
+          "status": "evaluated",
+          "reason": ""
+        },
+        "boost": {
+          "status": "not_evaluated",
+          "reason": "Target-relative boost error tracking not evaluated in report generator."
+        }
+      }
+    },
+    "rulesEngine": {
+      "ok": true,
+      "pullsCount": 1,
+      "totalFindings": 4,
+      "findings": [
+        {
+          "severity": "good",
+          "ruleId": "DAM_HELD",
+          "label": "DAM held at 1.0 throughout",
+          "observed": 1,
+          "expected": 1,
+          "message": "DAM remained at 1.0. No sustained knock detected."
+        },
+        {
+          "severity": "ugly",
+          "ruleId": "FEEDBACK_KNOCK_UGLY",
+          "label": "Significant knock detected",
+          "observed": -4.2,
+          "expected": -4,
+          "message": "feedback_knock -4.20\u00b0 detected. Peak magnitude 4.20\u00b0, 5 samples, 0.08s to recover. Requires investigation."
+        },
+        {
+          "severity": "good",
+          "ruleId": "BOOST_CONTROL",
+          "label": "Boost control within target",
+          "observed": 16.5,
+          "expected": 16.5,
+          "message": "Boost tracking remained within target during WOT pulls."
+        },
+        {
+          "severity": "good",
+          "ruleId": "AF_CORRECTION_STABLE",
+          "label": "Fuel trim stable in cruise",
+          "observed": 0,
+          "expected": 0,
+          "message": "A/F Correction 1 mean 0.0% \u00b1 0.0% (90 samples in CRUISE state). Within normal range."
+        }
+      ]
+    }
+  }
+}

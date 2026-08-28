@@ -29,14 +29,12 @@ function computeMetrics(session) {
     const SPOOL = window.StateClassifier?.STATES?.SPOOL || 'SPOOL';
     const WOT_STEADY = window.StateClassifier?.STATES?.WOT_STEADY || 'WOT_STEADY';
 
-    if (!inPull && state === SPOOL) {
-      // Start of potential pull
+    if (!inPull && (state === SPOOL || state === WOT_STEADY)) {
+      // Start of potential pull (from SPOOL or direct WOT_STEADY)
       inPull = true;
       pullStartIdx = i;
-      wotSteadyStartIdx = -1;
-    }
-
-    if (inPull && state === WOT_STEADY && wotSteadyStartIdx === -1) {
+      wotSteadyStartIdx = (state === WOT_STEADY) ? i : -1;
+    } else if (inPull && state === WOT_STEADY && wotSteadyStartIdx === -1) {
       // Transitioned into WOT_STEADY
       wotSteadyStartIdx = i;
     }

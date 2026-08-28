@@ -14,7 +14,8 @@ const STATES = {
   SPOOL:               'SPOOL',
   WOT_STEADY:          'WOT_STEADY',
   SHIFT:               'SHIFT',
-  OVERRUN:             'OVERRUN'
+  OVERRUN:             'OVERRUN',
+  UNKNOWN:             'UNKNOWN'
 };
 
 /**
@@ -79,26 +80,14 @@ function classifyState(row, prevRow, idx, allRows) {
     }
   }
   
+  // WOT_STEADY: throttle > 90%, boost > 4 psi (sustained ≥ 0.3 s via windowing)
+  if (throttle > 90 && boost > 4) {
+    return STATES.WOT_STEADY;
+  }
+
   // TIP_IN: throttle rising > 200%/sec, or boost rising > 15 psi/sec
   if (throttle_rate > 200 || boost_rate > 15) {
     return STATES.TIP_IN;
-  }
-  
-  // WOT_STEADY: throttle > 90%, boost > 4 psi, boost within 2 psi of target, sustained ≥ 0.3 s
-  // Note: The "sustained" part requires windowing logic above this function
-  if (throttle > 90 && boost > 4) {
-    const boost_error = Math.abs(boost - boost_target);
-    if (boost_error <= 2) {
-      return STATES.WOT_STEADY;
-    }
-  }
-  
-  // SPOOL: throttle > 90%, boost rising, not yet within 2 psi of target
-  if (throttle > 90 && boost_rate > 0) {
-    const boost_error = Math.abs(boost - boost_target);
-    if (boost_error > 2) {
-      return STATES.SPOOL;
-    }
   }
   
   // CRUISE: boost < 0, throttle 5–60%, steady RPM
@@ -108,8 +97,8 @@ function classifyState(row, prevRow, idx, allRows) {
     return STATES.CRUISE;
   }
   
-  // Default fallback (should be rare once tuned)
-  return STATES.CRUISE;
+  // Default fallback
+  return STATES.UNKNOWN;
 }
 
 /**

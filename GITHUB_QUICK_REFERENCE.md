@@ -1,4 +1,4 @@
-# Quick Reference: Files Ready for Manual GitHub Upload
+git -C /Users/skatta4/IdeaProjects/ap-log-analyzer push origin main# Quick Reference: Files Ready for Manual GitHub Upload
 
 ## All Files Located At
 ```

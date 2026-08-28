@@ -493,6 +493,28 @@
   function generateHealthReport(parsed) {
     const { filename, apInfo, tuneName, rows, totalRows } = parsed;
 
+    const states = (window.StateClassifier && window.StateClassifier.classifyAllRows)
+      ? window.StateClassifier.classifyAllRows(rows)
+      : rows.map(() => 'CRUISE');
+    const WOT_STEADY = window.StateClassifier?.STATES?.WOT_STEADY || 'WOT_STEADY';
+    const SHIFT = window.StateClassifier?.STATES?.SHIFT || 'SHIFT';
+    const DECEL_FUEL_CUT = window.StateClassifier?.STATES?.DECEL_FUEL_CUT || 'DECEL_FUEL_CUT';
+
+    function isInExclusionWindow(idx, exclusionSec = 0.3) {
+      if (idx <= 0 || !Number.isFinite(rows[idx].time)) return false;
+      const currentTime = rows[idx].time;
+      const lookbackTime = currentTime - exclusionSec;
+
+      for (let i = idx - 1; i >= 0; i--) {
+        if (!Number.isFinite(rows[i].time) || rows[i].time < lookbackTime) break;
+        const s = states[i];
+        if (s === SHIFT || s === DECEL_FUEL_CUT) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     const startTime = rows[0].time !== undefined ? rows[0].time : 0;
     const endTime = rows[rows.length - 1].time !== undefined ? rows[rows.length - 1].time : (totalRows * 0.05);
     const durationSec = Math.max(0, endTime - startTime);
@@ -501,6 +523,7 @@
     let minAfrInBoost = Infinity;
     let minAfrOverall = Infinity;
     let maxTimingRetardDeg = 0; // Most negative (e.g. -2.81)
+    let maxTimingRetardWotDeg = 0;
     let knockEventsCount = 0;
     let damEventsCount = 0;
     let minDam = 1.0;
@@ -515,6 +538,7 @@
     let maxLtft = 0;
     let maxStft = 0;
     let hasAfrInBoostSample = false;
+    let hasWotSample = false;
 
     const outOfSpecMoments = [];
     const warnings = [];
@@ -523,6 +547,10 @@
     rows.forEach((r, idx) => {
       const timeSec = r.time !== undefined ? r.time : (idx * 0.05);
       const timeStr = `${timeSec.toFixed(2)}s`;
+      const state = states[idx] || 'CRUISE';
+      const inExclusion = isInExclusionWindow(idx);
+      const isWotEval = state === WOT_STEADY && !inExclusion;
+      if (isWotEval) hasWotSample = true;
 
       // Boost
       if (Number.isFinite(r.boost)) {
@@ -532,7 +560,7 @@
       // AFR
       if (Number.isFinite(r.afr) && r.afr > 5 && r.afr < 25) {
         if (r.afr < minAfrOverall) minAfrOverall = r.afr;
-        if (Number.isFinite(r.boost) && r.boost > 2.0) {
+        if (isWotEval && Number.isFinite(r.boost) && r.boost > 2.0) {
           hasAfrInBoostSample = true;
           if (r.afr < minAfrInBoost) minAfrInBoost = r.afr;
           // Check lean condition under boost
@@ -560,8 +588,11 @@
       if (retard < maxTimingRetardDeg) {
         maxTimingRetardDeg = retard;
       }
+      if (isWotEval && retard < maxTimingRetardWotDeg) {
+        maxTimingRetardWotDeg = retard;
+      }
 
-      if (retard <= -1.4) {
+      if (isWotEval && retard <= -1.4) {
         knockEventsCount++;
         outOfSpecMoments.push({
           time: timeStr,
@@ -571,7 +602,7 @@
           severity: retard <= -2.8 ? 'hazard' : 'warn',
           note: `Knock correction event at ${Math.round(r.rpm || 0)} RPM`
         });
-      } else if (Number.isFinite(r.knock_sum) && r.knock_sum > 0) {
+      } else if (isWotEval && Number.isFinite(r.knock_sum) && r.knock_sum > 0) {
         knockEventsCount++;
       }
 
@@ -639,10 +670,11 @@
     if (Number.isFinite(minDam) && minDam < 0.95) {
       warnings.push(`DAM dropped to ${minDam.toFixed(3)} (${damEventsCount} rows affected). Engine is actively pulling global timing due to detected knock.`);
     }
-    if (maxTimingRetardDeg <= -2.8) {
-      warnings.push(`Severe timing retard detected (${maxTimingRetardDeg.toFixed(2)}° max correction). Check for fuel octane degradation or spark plug wear.`);
-    } else if (maxTimingRetardDeg < -1.0) {
-      warnings.push(`Moderate timing retard observed (${maxTimingRetardDeg.toFixed(2)}°). Minor knock correction active.`);
+    const timingForVerdict = hasWotSample ? maxTimingRetardWotDeg : 0;
+    if (timingForVerdict <= -2.8) {
+      warnings.push(`Severe timing retard detected during WOT (${timingForVerdict.toFixed(2)}° max correction). Check for fuel octane degradation or spark plug wear.`);
+    } else if (timingForVerdict < -1.0) {
+      warnings.push(`Moderate timing retard observed during WOT (${timingForVerdict.toFixed(2)}°). Minor knock correction active.`);
     }
     if (hasAfrInBoostSample && minAfrInBoost > 12.2 && peakBoostPsi > 5.0) {
       warnings.push(`Air/Fuel Ratio leaned out to ${minAfrInBoost.toFixed(2)} under boost (> 12.2 AFR target). Potential fueling restriction.`);
@@ -665,13 +697,13 @@
     let verdictLabel = 'Good tune';
 
     const hasCriticalAFR = hasAfrInBoostSample && ((minAfrInBoost > 12.5 && peakBoostPsi > 4.0) || minAfrInBoost < 10.2);
-    const hasCriticalTiming = maxTimingRetardDeg <= -2.8;
+    const hasCriticalTiming = timingForVerdict <= -2.8;
     const hasCriticalDAM = Number.isFinite(minDam) && minDam < 0.85;
 
     if (hasCriticalAFR || hasCriticalTiming || hasCriticalDAM) {
       verdict = 'check';
       verdictLabel = 'Check tune';
-    } else if (knockEventsCount > 0 || damEventsCount >= 3 || maxTimingRetardDeg < -1.0 || (Number.isFinite(minDam) && minDam < 0.95)) {
+    } else if (knockEventsCount > 0 || damEventsCount >= 3 || timingForVerdict < -1.0 || (Number.isFinite(minDam) && minDam < 0.95)) {
       verdict = 'watch';
       verdictLabel = 'Watch knock';
     } else {
@@ -701,6 +733,8 @@
         minAfrInBoost: Number.isFinite(minAfrInBoost) ? minAfrInBoost : NaN,
         hasAfrInBoostSample,
         maxTimingRetardDeg,
+        maxTimingRetardWotDeg,
+        hasWotSample,
         knockCount: knockEventsCount,
         damEvents: damEventsCount,
         minDam,
@@ -931,7 +965,8 @@
     // HUD values
     DOM.hudPeakBoost.textContent = `${report.metrics.peakBoostPsi.toFixed(1)} PSI`;
     DOM.hudMinAfr.textContent = Number.isFinite(report.metrics.minAfr) ? `${report.metrics.minAfr.toFixed(2)}:1` : 'N/A';
-    DOM.hudTimingRetard.textContent = `${report.metrics.maxTimingRetardDeg.toFixed(2)}°`;
+    const timingDisplay = report.metrics.hasWotSample ? report.metrics.maxTimingRetardWotDeg : report.metrics.maxTimingRetardDeg;
+    DOM.hudTimingRetard.textContent = `${timingDisplay.toFixed(2)}°`;
     DOM.hudKnockCount.textContent = `${report.metrics.knockCount} EVENTS`;
     DOM.hudDamEvents.textContent = `${report.metrics.minDam.toFixed(3)} (${report.metrics.damEvents} rows)`;
     DOM.hudPeakRpm.textContent = `${Math.round(report.metrics.peakRpm)} RPM`;
@@ -945,7 +980,7 @@
 
     const afrHazard = report.metrics.hasAfrInBoostSample && Number.isFinite(report.metrics.minAfrInBoost) && report.metrics.minAfrInBoost > 12.5;
     if (afrCard) afrCard.className = `hud-card ${afrHazard ? 'hazard-card' : 'safe-card'}`;
-    if (retardCard) retardCard.className = `hud-card ${report.metrics.maxTimingRetardDeg <= -2.8 ? 'hazard-card' : (report.metrics.maxTimingRetardDeg < 0 ? 'safe-card' : '')}`;
+    if (retardCard) retardCard.className = `hud-card ${timingDisplay <= -2.8 ? 'hazard-card' : (timingDisplay < 0 ? 'safe-card' : '')}`;
     if (knockCard) knockCard.className = `hud-card ${report.metrics.knockCount > 0 ? 'hazard-card' : 'safe-card'}`;
     if (damCard) damCard.className = `hud-card ${report.metrics.minDam < 0.95 ? 'hazard-card' : 'safe-card'}`;
 

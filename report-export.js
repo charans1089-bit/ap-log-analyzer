@@ -125,6 +125,10 @@
     const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
 
     const m = report.metrics;
+    const afrEvaluated = !report.evaluation || !report.evaluation.afr || report.evaluation.afr.status === 'evaluated';
+    const afrCsvValue = (afrEvaluated && Number.isFinite(m.minAfr))
+      ? m.minAfr.toFixed(2)
+      : `NOT EVALUATED: ${(report.evaluation && report.evaluation.afr && report.evaluation.afr.reason) || 'Monitor afr not logged.'}`;
     const values = [
       escapeCsv(new Date(report.timestamp).toLocaleString()),
       escapeCsv(report.filename),
@@ -132,7 +136,7 @@
       report.durationSec.toFixed(2),
       report.totalRows,
       m.peakBoostPsi.toFixed(1),
-      m.minAfr.toFixed(2),
+      escapeCsv(afrCsvValue),
       m.maxTimingRetardDeg.toFixed(2),
       m.knockCount,
       m.damEvents,

@@ -447,6 +447,8 @@
     const headerLine = lines[0];
     const delimiter = headerLine.includes('\t') ? '\t' : (headerLine.includes(';') ? ';' : ',');
     const rawHeaders = headerLine.split(delimiter).map(h => h.trim());
+    const normalizedHeaders = rawHeaders.map(h => cleanHeader(h));
+    const hasLambdaColumn = normalizedHeaders.includes('lambda');
 
     // Extract AP Info metadata if present
     let apInfo = '';
@@ -483,7 +485,7 @@
       throw new Error('Could not parse valid numeric telemetry rows.');
     }
 
-    return { filename, apInfo, tuneName, rows, totalRows: rows.length };
+    return { filename, apInfo, tuneName, rows, totalRows: rows.length, hasLambdaColumn };
   }
 
   // ==========================================================
@@ -491,7 +493,7 @@
   // ==========================================================
 
   function generateHealthReport(parsed) {
-    const { filename, apInfo, tuneName, rows, totalRows } = parsed;
+    const { filename, apInfo, tuneName, rows, totalRows, hasLambdaColumn } = parsed;
 
     const states = (window.StateClassifier && window.StateClassifier.classifyAllRows)
       ? window.StateClassifier.classifyAllRows(rows)
@@ -660,7 +662,12 @@
     // Cleanup infinities
     if (peakBoostPsi === -Infinity) peakBoostPsi = 0;
     if (minAfrInBoost === Infinity) minAfrInBoost = NaN;
-    if (minAfrOverall === Infinity) minAfrOverall = 14.7;
+    const hasAnyAfrSample = minAfrOverall !== Infinity;
+    const afrNotEvaluatedReason = hasAnyAfrSample
+      ? ''
+      : (hasLambdaColumn
+          ? 'Monitor afr not logged (lambda logged, AFR not logged, no conversion applied).'
+          : 'Monitor afr not logged.');
     if (minFuelPressure === Infinity) minFuelPressure = 2150;
     if (maxOilTemp === -Infinity) maxOilTemp = 210;
     if (maxCoolantTemp === -Infinity) maxCoolantTemp = 190;
@@ -696,7 +703,7 @@
     let verdict = 'good';
     let verdictLabel = 'Good tune';
 
-    const hasCriticalAFR = hasAfrInBoostSample && ((minAfrInBoost > 12.5 && peakBoostPsi > 4.0) || minAfrInBoost < 10.2);
+    const hasCriticalAFR = hasAnyAfrSample && hasAfrInBoostSample && ((minAfrInBoost > 12.5 && peakBoostPsi > 4.0) || minAfrInBoost < 10.2);
     const hasCriticalTiming = timingForVerdict <= -2.8;
     const hasCriticalDAM = Number.isFinite(minDam) && minDam < 0.85;
 
@@ -729,9 +736,10 @@
       verdictLabel,
       metrics: {
         peakBoostPsi,
-        minAfr: Number.isFinite(minAfrInBoost) ? minAfrInBoost : (Number.isFinite(minAfrOverall) ? minAfrOverall : NaN),
+        minAfr: hasAnyAfrSample ? (Number.isFinite(minAfrInBoost) ? minAfrInBoost : minAfrOverall) : null,
         minAfrInBoost: Number.isFinite(minAfrInBoost) ? minAfrInBoost : NaN,
         hasAfrInBoostSample,
+        hasAnyAfrSample,
         maxTimingRetardDeg,
         maxTimingRetardWotDeg,
         hasWotSample,
@@ -750,13 +758,18 @@
         maxStft
       },
       safeRanges: {
-        afr: '11.0 – 13.5 (under boost: 11.2–12.0)',
+        afr: hasAnyAfrSample ? '11.0 – 13.5 (under boost: 11.2–12.0)' : `NOT EVALUATED: ${afrNotEvaluatedReason}`,
         timing: '>= -1.00°',
         dam: '1.000 (>= 0.95)',
         knock: '0 counts',
         fuelPressure: '> 2000 PSI under load',
         oilTemp: '< 235°F',
         idc: '< 85%'
+      },
+      evaluation: {
+        afr: hasAnyAfrSample
+          ? { status: 'evaluated', reason: '' }
+          : { status: 'not_evaluated', reason: afrNotEvaluatedReason }
       },
       warnings,
       outOfSpecMoments
@@ -964,7 +977,11 @@
 
     // HUD values
     DOM.hudPeakBoost.textContent = `${report.metrics.peakBoostPsi.toFixed(1)} PSI`;
-    DOM.hudMinAfr.textContent = Number.isFinite(report.metrics.minAfr) ? `${report.metrics.minAfr.toFixed(2)}:1` : 'N/A';
+    const afrEvaluated = !report.evaluation || !report.evaluation.afr || report.evaluation.afr.status === 'evaluated';
+    const afrReason = report.evaluation && report.evaluation.afr ? report.evaluation.afr.reason : '';
+    DOM.hudMinAfr.textContent = afrEvaluated && Number.isFinite(report.metrics.minAfr)
+      ? `${report.metrics.minAfr.toFixed(2)}:1`
+      : `NOT EVALUATED: ${afrReason || 'Monitor afr not logged.'}`;
     const timingDisplay = report.metrics.hasWotSample ? report.metrics.maxTimingRetardWotDeg : report.metrics.maxTimingRetardDeg;
     DOM.hudTimingRetard.textContent = `${timingDisplay.toFixed(2)}°`;
     DOM.hudKnockCount.textContent = `${report.metrics.knockCount} EVENTS`;
@@ -978,11 +995,18 @@
     const knockCard = DOM.hudKnockCount.closest('.hud-card');
     const damCard = DOM.hudDamEvents.closest('.hud-card');
 
-    const afrHazard = report.metrics.hasAfrInBoostSample && Number.isFinite(report.metrics.minAfrInBoost) && report.metrics.minAfrInBoost > 12.5;
+    const afrHazard = afrEvaluated && report.metrics.hasAfrInBoostSample && Number.isFinite(report.metrics.minAfrInBoost) && report.metrics.minAfrInBoost > 12.5;
     if (afrCard) afrCard.className = `hud-card ${afrHazard ? 'hazard-card' : 'safe-card'}`;
     if (retardCard) retardCard.className = `hud-card ${timingDisplay <= -2.8 ? 'hazard-card' : (timingDisplay < 0 ? 'safe-card' : '')}`;
     if (knockCard) knockCard.className = `hud-card ${report.metrics.knockCount > 0 ? 'hazard-card' : 'safe-card'}`;
     if (damCard) damCard.className = `hud-card ${report.metrics.minDam < 0.95 ? 'hazard-card' : 'safe-card'}`;
+
+    if (afrCard && !afrEvaluated) {
+      const afrTarget = afrCard.querySelector('.hud-target');
+      if (afrTarget) {
+        afrTarget.textContent = `NOT EVALUATED: ${afrReason || 'Monitor afr not logged.'}`;
+      }
+    }
 
     // Warnings ticker
     DOM.warningsTicker.innerHTML = '';
@@ -1173,7 +1197,10 @@
     if (!repA || !repB) return;
 
     const deltaBoost = repB.metrics.peakBoostPsi - repA.metrics.peakBoostPsi;
-    const deltaAfr = repB.metrics.minAfr - repA.metrics.minAfr;
+    const repAAfrEvaluated = !repA.evaluation || !repA.evaluation.afr || repA.evaluation.afr.status === 'evaluated';
+    const repBAfrEvaluated = !repB.evaluation || !repB.evaluation.afr || repB.evaluation.afr.status === 'evaluated';
+    const afrDeltaAvailable = repAAfrEvaluated && repBAfrEvaluated && Number.isFinite(repA.metrics.minAfr) && Number.isFinite(repB.metrics.minAfr);
+    const deltaAfr = afrDeltaAvailable ? (repB.metrics.minAfr - repA.metrics.minAfr) : null;
     const deltaKnock = repB.metrics.knockCount - repA.metrics.knockCount;
     const deltaTiming = repB.metrics.maxTimingRetardDeg - repA.metrics.maxTimingRetardDeg;
 
@@ -1183,7 +1210,7 @@
           <div class="compare-col-header">LOG A: ${escapeHtml(repA.filename)}</div>
           <div class="compare-stat-row"><span>Verdict</span><strong class="${repA.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${escapeHtml(repA.verdictLabel)}</strong></div>
           <div class="compare-stat-row"><span>Peak Boost</span><strong>${repA.metrics.peakBoostPsi.toFixed(1)} PSI</strong></div>
-          <div class="compare-stat-row"><span>Min AFR</span><strong>${repA.metrics.minAfr.toFixed(2)}</strong></div>
+          <div class="compare-stat-row"><span>Min AFR</span><strong>${repAAfrEvaluated && Number.isFinite(repA.metrics.minAfr) ? repA.metrics.minAfr.toFixed(2) : `NOT EVALUATED: ${escapeHtml(repA.evaluation?.afr?.reason || 'Monitor afr not logged.')}`}</strong></div>
           <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repA.metrics.maxTimingRetardDeg.toFixed(2)}°</strong></div>
           <div class="compare-stat-row"><span>Knock Events</span><strong>${repA.metrics.knockCount}</strong></div>
           <div class="compare-stat-row"><span>Min DAM</span><strong>${repA.metrics.minDam.toFixed(3)}</strong></div>
@@ -1193,7 +1220,7 @@
           <div class="compare-col-header">LOG B: ${escapeHtml(repB.filename)}</div>
           <div class="compare-stat-row"><span>Verdict</span><strong class="${repB.verdict === 'good' ? 'compare-delta-pos' : 'compare-delta-neg'}">${escapeHtml(repB.verdictLabel)}</strong></div>
           <div class="compare-stat-row"><span>Peak Boost</span><strong>${repB.metrics.peakBoostPsi.toFixed(1)} PSI <span class="${deltaBoost >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaBoost >= 0 ? '+' : ''}${deltaBoost.toFixed(1)})</span></strong></div>
-          <div class="compare-stat-row"><span>Min AFR</span><strong>${repB.metrics.minAfr.toFixed(2)} <span class="${deltaAfr <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaAfr >= 0 ? '+' : ''}${deltaAfr.toFixed(2)})</span></strong></div>
+          <div class="compare-stat-row"><span>Min AFR</span><strong>${repBAfrEvaluated && Number.isFinite(repB.metrics.minAfr) ? repB.metrics.minAfr.toFixed(2) : `NOT EVALUATED: ${escapeHtml(repB.evaluation?.afr?.reason || 'Monitor afr not logged.')}`} ${afrDeltaAvailable ? `<span class="${deltaAfr <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaAfr >= 0 ? '+' : ''}${deltaAfr.toFixed(2)})</span>` : ''}</strong></div>
           <div class="compare-stat-row"><span>Max Timing Retard</span><strong>${repB.metrics.maxTimingRetardDeg.toFixed(2)}° <span class="${deltaTiming >= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaTiming >= 0 ? '+' : ''}${deltaTiming.toFixed(2)})</span></strong></div>
           <div class="compare-stat-row"><span>Knock Events</span><strong>${repB.metrics.knockCount} <span class="${deltaKnock <= 0 ? 'compare-delta-pos' : 'compare-delta-neg'}">(${deltaKnock >= 0 ? '+' : ''}${deltaKnock})</span></strong></div>
           <div class="compare-stat-row"><span>Min DAM</span><strong>${repB.metrics.minDam.toFixed(3)}</strong></div>

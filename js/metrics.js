@@ -75,10 +75,10 @@ function computeMetrics(session) {
             startRpm: rpmStart,
             endRpm: rpmEnd,
             rpmSpan,
-            peakRpm,
-            peakBoost,
-            peakLoad,
-            gear: gear || 0
+            peakRpm: Number.isFinite(peakRpm) ? peakRpm : null,
+            peakBoost: Number.isFinite(peakBoost) ? peakBoost : null,
+            peakLoad: Number.isFinite(peakLoad) ? peakLoad : null,
+            gear: Number.isFinite(gear) ? gear : null
           });
         }
       }
@@ -122,10 +122,10 @@ function computeMetrics(session) {
         startRpm: rpmStart,
         endRpm: rpmEnd,
         rpmSpan,
-        peakRpm,
-        peakBoost,
-        peakLoad,
-        gear: gear || 0
+        peakRpm: Number.isFinite(peakRpm) ? peakRpm : null,
+        peakBoost: Number.isFinite(peakBoost) ? peakBoost : null,
+        peakLoad: Number.isFinite(peakLoad) ? peakLoad : null,
+        gear: Number.isFinite(gear) ? gear : null
       });
     }
   }

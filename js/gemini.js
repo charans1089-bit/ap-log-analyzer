@@ -2,12 +2,21 @@
 
 /**
  * Google Gemini AI Integration for AP Log Analyzer
- * Directly connects browser client to Google Gemini 2.0 / 1.5 models.
+ * Directly connects browser client to Google Gemini models.
  */
 window.GeminiService = (function () {
   const STORAGE_KEY = 'ap_gemini_api_key';
   const MODEL_KEY = 'ap_gemini_model';
-  const DEFAULT_MODEL = 'gemini-2.0-flash';
+  const DEFAULT_MODEL = 'gemini-3.6-flash';
+  const DEPRECATED_MODEL_ALIASES = {
+    'gemini-2.0-flash': DEFAULT_MODEL
+  };
+
+  function normalizeModel(model) {
+    const cleaned = (model || '').trim();
+    if (!cleaned) return DEFAULT_MODEL;
+    return DEPRECATED_MODEL_ALIASES[cleaned] || cleaned;
+  }
 
   function getApiKey() {
     return localStorage.getItem(STORAGE_KEY) || '';
@@ -27,11 +36,19 @@ window.GeminiService = (function () {
   }
 
   function getModel() {
-    return localStorage.getItem(MODEL_KEY) || DEFAULT_MODEL;
+    const stored = localStorage.getItem(MODEL_KEY);
+    const normalized = normalizeModel(stored);
+
+    // Migrate deprecated stored model names in-place.
+    if (stored !== normalized) {
+      localStorage.setItem(MODEL_KEY, normalized);
+    }
+
+    return normalized;
   }
 
   function setModel(model) {
-    localStorage.setItem(MODEL_KEY, model || DEFAULT_MODEL);
+    localStorage.setItem(MODEL_KEY, normalizeModel(model));
   }
 
   async function testApiKey(key) {
@@ -106,8 +123,22 @@ ${issues || 'None (Clean Log)'}`;
       return;
     }
 
-    const model = getModel();
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
+    async function requestStream(model, requestBody) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (resp.ok) {
+        return { resp, errorMessage: '' };
+      }
+
+      const errJson = await resp.json().catch(() => ({}));
+      const msg = errJson.error?.message || `Gemini API error (HTTP ${resp.status})`;
+      return { resp, errorMessage: msg };
+    }
 
     const contents = [];
     
@@ -137,16 +168,20 @@ ${issues || 'None (Clean Log)'}`;
     };
 
     try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      let model = getModel();
+      let { resp, errorMessage } = await requestStream(model, body);
+
+      const modelUnavailable =
+        (resp.status === 404 || /no longer available|not found/i.test(errorMessage));
+
+      if (!resp.ok && modelUnavailable && model !== DEFAULT_MODEL) {
+        setModel(DEFAULT_MODEL);
+        model = DEFAULT_MODEL;
+        ({ resp, errorMessage } = await requestStream(model, body));
+      }
 
       if (!resp.ok) {
-        const errJson = await resp.json().catch(() => ({}));
-        const msg = errJson.error?.message || `Gemini API error (HTTP ${resp.status})`;
-        throw new Error(msg);
+        throw new Error(errorMessage);
       }
 
       const reader = resp.body.getReader();

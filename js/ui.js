@@ -32,7 +32,7 @@ window.UI = (function () {
 
   function updateGeminiPills() {
     const hasKey = window.GeminiService && window.GeminiService.hasApiKey();
-    const model = window.GeminiService ? window.GeminiService.getModel() : 'gemini-2.0-flash';
+    const model = window.GeminiService ? window.GeminiService.getModel() : 'gemini-3.6-flash';
     const shortModel = model.replace('gemini-', 'Gemini ');
     const label = hasKey ? `✨ ${shortModel} Active` : '✨ Setup Gemini AI';
 
@@ -480,7 +480,7 @@ window.UI = (function () {
           <div id="gemini-live-report-box" class="gemini-live-report hidden">
             <div class="gemini-live-header">
               <span class="badge-gemini-streaming">● GEMINI LIVE CALIBRATION</span>
-              <span class="gemini-model-tag" id="gemini-active-model-tag">Gemini 2.0 Flash</span>
+              <span class="gemini-model-tag" id="gemini-active-model-tag">Gemini 3.6 Flash</span>
             </div>
             <div id="gemini-live-text" class="gemini-markdown-output">
               <span class="typing-cursor">Analyzing datalog channels...</span>
@@ -922,7 +922,7 @@ window.UI = (function () {
     if (saveBtn) {
       saveBtn.addEventListener('click', () => {
         const key = inputKey ? inputKey.value : '';
-        const model = modelSelect ? modelSelect.value : 'gemini-2.0-flash';
+        const model = modelSelect ? modelSelect.value : 'gemini-3.6-flash';
         window.GeminiService.setApiKey(key);
         window.GeminiService.setModel(model);
         updateGeminiPills();

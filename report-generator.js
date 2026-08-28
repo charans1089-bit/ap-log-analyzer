@@ -407,12 +407,14 @@
   const HEADER_ALIASES = {
     time: ['time', 'timesec', 'times', 'timeelapsed'],
     boost: ['boost', 'boostpsi', 'boostcalc', 'manifoldpressure', 'manifoldpressurepsi', 'mappsi', 'boostpressure'],
-    afr: ['afr', 'afrwideband', 'afsens1ratio', 'afsens1ratioafr', 'widebandafr', 'airfuelratio', 'afratio', 'lambda'],
+    // Do not map raw lambda to AFR here; this path does not perform lambda->AFR conversion.
+    afr: ['afr', 'afrwideband', 'afsens1ratio', 'afsens1ratioafr', 'widebandafr', 'airfuelratio', 'afratio'],
     timing: ['ignitiontiming', 'timing', 'sparkadvance', 'timingadvance', 'ignadvance'],
     feedback_knock: ['feedbackknock', 'feedbackknockdeg', 'feedbackknockcorrection', 'fbk', 'timingcorrection', 'knockcorrection', 'knockcorr'],
     fine_knock_learn: ['fineknocklearn', 'fineknocklearning', 'fineknocklearndeg', 'fkl'],
     knock_sum: ['knocksum', 'knockcount', 'knocksensor', 'roughnesscyl1'],
-    dam: ['dynadvmultdam', 'dam', 'dynamicadvance multiplier', 'dynamicadvmult', 'desiredairmass'],
+    // Avoid alias collisions with airflow-like channels.
+    dam: ['dynadvmultdam', 'dam', 'dynamicadvance multiplier', 'dynamicadvmult'],
     rpm: ['rpm', 'rpmrpm', 'enginespeed', 'enginerpm'],
     calc_load: ['calculatedload', 'engineload', 'loadgrev', 'load'],
     fuel_press: ['snsfuelpressmonitor', 'fuelpressure', 'snsfuelpressmonitorpsi', 'fuelpress', 'highpressurefuelpump'],
@@ -472,7 +474,7 @@
       const row = { _idx: i - 1 };
       for (const [key, colIdx] of Object.entries(columnMap)) {
         const val = parseFloat(fields[colIdx]);
-        row[key] = isNaN(val) ? 0 : val;
+        row[key] = Number.isFinite(val) ? val : NaN;
       }
       rows.push(row);
     }
@@ -512,6 +514,7 @@
     let peakIdc = 0;
     let maxLtft = 0;
     let maxStft = 0;
+    let hasAfrInBoostSample = false;
 
     const outOfSpecMoments = [];
     const warnings = [];
@@ -522,14 +525,15 @@
       const timeStr = `${timeSec.toFixed(2)}s`;
 
       // Boost
-      if (r.boost !== undefined) {
+      if (Number.isFinite(r.boost)) {
         if (r.boost > peakBoostPsi) peakBoostPsi = r.boost;
       }
 
       // AFR
-      if (r.afr !== undefined && r.afr > 5 && r.afr < 25) {
+      if (Number.isFinite(r.afr) && r.afr > 5 && r.afr < 25) {
         if (r.afr < minAfrOverall) minAfrOverall = r.afr;
-        if (r.boost !== undefined && r.boost > 2.0) {
+        if (Number.isFinite(r.boost) && r.boost > 2.0) {
+          hasAfrInBoostSample = true;
           if (r.afr < minAfrInBoost) minAfrInBoost = r.afr;
           // Check lean condition under boost
           if (r.afr > 12.5) {
@@ -539,7 +543,7 @@
               value: `${r.afr.toFixed(2)}:1`,
               safeRange: '11.00 – 12.20 under boost',
               severity: 'hazard',
-              note: `Lean mixture at ${r.boost ? r.boost.toFixed(1) : 0} PSI boost`
+              note: `Lean mixture at ${r.boost.toFixed(1)} PSI boost`
             });
           }
         }
@@ -547,10 +551,10 @@
 
       // Timing Retard / Feedback Knock
       let retard = 0;
-      if (r.feedback_knock !== undefined && r.feedback_knock < 0) {
+      if (Number.isFinite(r.feedback_knock) && r.feedback_knock < 0) {
         retard = Math.min(retard, r.feedback_knock);
       }
-      if (r.fine_knock_learn !== undefined && r.fine_knock_learn < 0) {
+      if (Number.isFinite(r.fine_knock_learn) && r.fine_knock_learn < 0) {
         retard = Math.min(retard, r.fine_knock_learn);
       }
       if (retard < maxTimingRetardDeg) {
@@ -567,12 +571,12 @@
           severity: retard <= -2.8 ? 'hazard' : 'warn',
           note: `Knock correction event at ${Math.round(r.rpm || 0)} RPM`
         });
-      } else if (r.knock_sum !== undefined && r.knock_sum > 0) {
+      } else if (Number.isFinite(r.knock_sum) && r.knock_sum > 0) {
         knockEventsCount++;
       }
 
       // DAM (Dynamic Advance Multiplier)
-      if (r.dam !== undefined) {
+      if (Number.isFinite(r.dam)) {
         if (r.dam < minDam) minDam = r.dam;
         if (r.dam < 0.95 || (r.dam < 1.0 && r.dam > 0.05)) {
           damEventsCount++;
@@ -590,13 +594,13 @@
       }
 
       // RPM & Load
-      if (r.rpm !== undefined && r.rpm > peakRpm) peakRpm = r.rpm;
-      if (r.calc_load !== undefined && r.calc_load > peakLoad) peakLoad = r.calc_load;
+      if (Number.isFinite(r.rpm) && r.rpm > peakRpm) peakRpm = r.rpm;
+      if (Number.isFinite(r.calc_load) && r.calc_load > peakLoad) peakLoad = r.calc_load;
 
       // Fuel Pressure
-      if (r.fuel_press !== undefined && r.fuel_press > 100) {
+      if (Number.isFinite(r.fuel_press) && r.fuel_press > 100) {
         if (r.fuel_press < minFuelPressure) minFuelPressure = r.fuel_press;
-        if (r.fuel_press < 1800 && r.boost > 5.0) {
+        if (r.fuel_press < 1800 && Number.isFinite(r.boost) && r.boost > 5.0) {
           outOfSpecMoments.push({
             time: timeStr,
             param: 'Fuel Rail Pressure',
@@ -609,22 +613,22 @@
       }
 
       // Temps & Extended Channels
-      if (r.oil_temp !== undefined && r.oil_temp > maxOilTemp) maxOilTemp = r.oil_temp;
-      if (r.coolant_temp !== undefined && r.coolant_temp > maxCoolantTemp) maxCoolantTemp = r.coolant_temp;
-      if (r.intake_temp !== undefined && r.intake_temp > maxIat) maxIat = r.intake_temp;
-      if (r.ethanol !== undefined && r.ethanol > 0) ethanolPct = Math.max(ethanolPct, r.ethanol);
-      if (r.inj_duty_cycle !== undefined && r.inj_duty_cycle > peakIdc) peakIdc = r.inj_duty_cycle;
-      if (r.af_learning_1 !== undefined && !isNaN(r.af_learning_1)) {
+      if (Number.isFinite(r.oil_temp) && r.oil_temp > maxOilTemp) maxOilTemp = r.oil_temp;
+      if (Number.isFinite(r.coolant_temp) && r.coolant_temp > maxCoolantTemp) maxCoolantTemp = r.coolant_temp;
+      if (Number.isFinite(r.intake_temp) && r.intake_temp > maxIat) maxIat = r.intake_temp;
+      if (Number.isFinite(r.ethanol) && r.ethanol > 0) ethanolPct = Math.max(ethanolPct, r.ethanol);
+      if (Number.isFinite(r.inj_duty_cycle) && r.inj_duty_cycle > peakIdc) peakIdc = r.inj_duty_cycle;
+      if (Number.isFinite(r.af_learning_1)) {
         if (Math.abs(r.af_learning_1) > Math.abs(maxLtft)) maxLtft = r.af_learning_1;
       }
-      if (r.af_correction_1 !== undefined && !isNaN(r.af_correction_1)) {
+      if (Number.isFinite(r.af_correction_1)) {
         if (Math.abs(r.af_correction_1) > Math.abs(maxStft)) maxStft = r.af_correction_1;
       }
     });
 
     // Cleanup infinities
     if (peakBoostPsi === -Infinity) peakBoostPsi = 0;
-    if (minAfrInBoost === Infinity) minAfrInBoost = (minAfrOverall !== Infinity ? minAfrOverall : 14.7);
+    if (minAfrInBoost === Infinity) minAfrInBoost = NaN;
     if (minAfrOverall === Infinity) minAfrOverall = 14.7;
     if (minFuelPressure === Infinity) minFuelPressure = 2150;
     if (maxOilTemp === -Infinity) maxOilTemp = 210;
@@ -632,7 +636,7 @@
     if (maxIat === -Infinity) maxIat = 90;
 
     // Build Warnings List
-    if (minDam < 0.95) {
+    if (Number.isFinite(minDam) && minDam < 0.95) {
       warnings.push(`DAM dropped to ${minDam.toFixed(3)} (${damEventsCount} rows affected). Engine is actively pulling global timing due to detected knock.`);
     }
     if (maxTimingRetardDeg <= -2.8) {
@@ -640,7 +644,7 @@
     } else if (maxTimingRetardDeg < -1.0) {
       warnings.push(`Moderate timing retard observed (${maxTimingRetardDeg.toFixed(2)}°). Minor knock correction active.`);
     }
-    if (minAfrInBoost > 12.2 && peakBoostPsi > 5.0) {
+    if (hasAfrInBoostSample && minAfrInBoost > 12.2 && peakBoostPsi > 5.0) {
       warnings.push(`Air/Fuel Ratio leaned out to ${minAfrInBoost.toFixed(2)} under boost (> 12.2 AFR target). Potential fueling restriction.`);
     }
     if (maxOilTemp > 240) {
@@ -656,18 +660,18 @@
     // VERDICT CALCULATION (Per specification)
     // "Good tune" = knock count is 0 AND DAM events < 3 AND all metrics in safe range
     // "Watch knock" = knock count > 0 OR DAM events >= 3
-    // "Check tune" = any critical metric out of range (AFR < 10.5, timing < -1.5°, DAM < 0.85, AFR > 12.5 in boost)
+    // "Check tune" = any critical metric out of range (AFR in boost, severe timing, DAM < 0.85)
     let verdict = 'good';
     let verdictLabel = 'Good tune';
 
-    const hasCriticalAFR = (minAfrInBoost > 12.5 && peakBoostPsi > 4.0) || minAfrInBoost < 10.2;
-    const hasCriticalTiming = maxTimingRetardDeg <= -1.5;
-    const hasCriticalDAM = minDam < 0.85;
+    const hasCriticalAFR = hasAfrInBoostSample && ((minAfrInBoost > 12.5 && peakBoostPsi > 4.0) || minAfrInBoost < 10.2);
+    const hasCriticalTiming = maxTimingRetardDeg <= -2.8;
+    const hasCriticalDAM = Number.isFinite(minDam) && minDam < 0.85;
 
     if (hasCriticalAFR || hasCriticalTiming || hasCriticalDAM) {
       verdict = 'check';
       verdictLabel = 'Check tune';
-    } else if (knockEventsCount > 0 || damEventsCount >= 3 || maxTimingRetardDeg < -1.0 || minDam < 0.95) {
+    } else if (knockEventsCount > 0 || damEventsCount >= 3 || maxTimingRetardDeg < -1.0 || (Number.isFinite(minDam) && minDam < 0.95)) {
       verdict = 'watch';
       verdictLabel = 'Watch knock';
     } else {
@@ -693,7 +697,9 @@
       verdictLabel,
       metrics: {
         peakBoostPsi,
-        minAfr: minAfrInBoost !== Infinity ? minAfrInBoost : minAfrOverall,
+        minAfr: Number.isFinite(minAfrInBoost) ? minAfrInBoost : (Number.isFinite(minAfrOverall) ? minAfrOverall : NaN),
+        minAfrInBoost: Number.isFinite(minAfrInBoost) ? minAfrInBoost : NaN,
+        hasAfrInBoostSample,
         maxTimingRetardDeg,
         knockCount: knockEventsCount,
         damEvents: damEventsCount,
@@ -924,7 +930,7 @@
 
     // HUD values
     DOM.hudPeakBoost.textContent = `${report.metrics.peakBoostPsi.toFixed(1)} PSI`;
-    DOM.hudMinAfr.textContent = `${report.metrics.minAfr.toFixed(2)}:1`;
+    DOM.hudMinAfr.textContent = Number.isFinite(report.metrics.minAfr) ? `${report.metrics.minAfr.toFixed(2)}:1` : 'N/A';
     DOM.hudTimingRetard.textContent = `${report.metrics.maxTimingRetardDeg.toFixed(2)}°`;
     DOM.hudKnockCount.textContent = `${report.metrics.knockCount} EVENTS`;
     DOM.hudDamEvents.textContent = `${report.metrics.minDam.toFixed(3)} (${report.metrics.damEvents} rows)`;
@@ -937,8 +943,9 @@
     const knockCard = DOM.hudKnockCount.closest('.hud-card');
     const damCard = DOM.hudDamEvents.closest('.hud-card');
 
-    if (afrCard) afrCard.className = `hud-card ${report.metrics.minAfr > 12.5 ? 'hazard-card' : 'safe-card'}`;
-    if (retardCard) retardCard.className = `hud-card ${report.metrics.maxTimingRetardDeg <= -1.5 ? 'hazard-card' : (report.metrics.maxTimingRetardDeg < 0 ? 'safe-card' : '')}`;
+    const afrHazard = report.metrics.hasAfrInBoostSample && Number.isFinite(report.metrics.minAfrInBoost) && report.metrics.minAfrInBoost > 12.5;
+    if (afrCard) afrCard.className = `hud-card ${afrHazard ? 'hazard-card' : 'safe-card'}`;
+    if (retardCard) retardCard.className = `hud-card ${report.metrics.maxTimingRetardDeg <= -2.8 ? 'hazard-card' : (report.metrics.maxTimingRetardDeg < 0 ? 'safe-card' : '')}`;
     if (knockCard) knockCard.className = `hud-card ${report.metrics.knockCount > 0 ? 'hazard-card' : 'safe-card'}`;
     if (damCard) damCard.className = `hud-card ${report.metrics.minDam < 0.95 ? 'hazard-card' : 'safe-card'}`;
 

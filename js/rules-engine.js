@@ -47,6 +47,8 @@ const THRESHOLDS = {
  */
 class Finding {
   constructor(severity, ruleId, label, message, opts = {}) {
+    const observedValue = opts.value !== undefined ? opts.value : opts.observed;
+
     // Required fields - MUST all be present
     const requiredFields = {
       timestamp: opts.timestamp,
@@ -56,7 +58,7 @@ class Finding {
       load: opts.load,
       throttle: opts.throttle,
       state: opts.state,
-      observed: opts.value,  // 'value' in opts maps to 'observed' in Finding
+      observed: observedValue,
       expected: opts.expected,
       ruleId: ruleId
     };
@@ -88,7 +90,8 @@ class Finding {
     this.load = opts.load;
     this.throttle = opts.throttle;
     this.state = opts.state;
-    this.value = opts.value;           // observed value
+    this.value = observedValue;        // observed value
+    this.observed = observedValue;     // alias used by validation/spec language
     this.expected = opts.expected;     // expected value
     
     // Optional fields
@@ -124,6 +127,8 @@ function isDataValid(row, key) {
  * Ensures all required Finding fields are present
  */
 function getFullContext(row, state, opts = {}) {
+  const observedValue = opts.observed !== undefined ? opts.observed : opts.value;
+
   return {
     timestamp: row.time || 0,
     rpm: Number.isFinite(row.rpm) ? Math.round(row.rpm) : 0,
@@ -132,7 +137,8 @@ function getFullContext(row, state, opts = {}) {
     load: Number.isFinite(row.calc_load) ? row.calc_load : 0,
     throttle: Number.isFinite(row.throttle_pos) ? row.throttle_pos : 0,
     state: state || 'UNKNOWN',
-    observed: opts.observed !== undefined ? opts.observed : 0,
+    value: observedValue !== undefined ? observedValue : 0,
+    observed: observedValue !== undefined ? observedValue : 0,
     expected: opts.expected !== undefined ? opts.expected : 0,
     metric: opts.metric || 'unknown',
     pullIndex: opts.pullIndex || null,
@@ -688,6 +694,7 @@ function runFindings(session) {
   } else {
     let maxIatInPull = -Infinity;
     let maxIatRow = null;
+    let maxIatState = null;
     
     for (const pull of pulls) {
       for (let i = pull.startIdx; i <= pull.endIdx; i++) {
@@ -697,20 +704,21 @@ function runFindings(session) {
           if (row.intake_temp > maxIatInPull) {
             maxIatInPull = row.intake_temp;
             maxIatRow = row;
+            maxIatState = state;
           }
         }
       }
     }
     
     if (maxIatRow && maxIatInPull > THRESHOLDS.IAT_WARN) {
+      const ctx = getFullContext(maxIatRow, maxIatState, {
+        observed: maxIatInPull,
+        expected: THRESHOLDS.IAT_WARN,
+        metric: 'intake_temp'
+      });
       addFinding('bad', 'IAT_ELEVATED', 'Intake air temp elevated during WOT',
         `IAT reached ${maxIatInPull.toFixed(0)}°F during pull. Elevated IAT reduces knock margin.`,
-        {
-          metric: 'intake_temp',
-          timestamp: maxIatRow.time,
-          rpm: Math.round(maxIatRow.rpm),
-          value: maxIatInPull
-        }
+        ctx
       );
     }
   }
@@ -718,21 +726,25 @@ function runFindings(session) {
   if (hasColumn(session, 'oil_temp')) {
     let maxOilTemp = -Infinity;
     let maxOilRow = null;
-    for (const row of rows) {
+    let maxOilState = null;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       if (isDataValid(row, 'oil_temp') && row.oil_temp > maxOilTemp) {
         maxOilTemp = row.oil_temp;
         maxOilRow = row;
+        maxOilState = activeStates[i];
       }
     }
     
     if (maxOilRow && maxOilTemp > THRESHOLDS.OIL_TEMP_WARN) {
+      const ctx = getFullContext(maxOilRow, maxOilState, {
+        observed: maxOilTemp,
+        expected: THRESHOLDS.OIL_TEMP_WARN,
+        metric: 'oil_temp'
+      });
       addFinding('bad', 'OIL_TEMP_ELEVATED', 'Oil temperature elevated',
         `Oil temperature reached ${maxOilTemp.toFixed(0)}°F. Monitor engine cooling.`,
-        {
-          metric: 'oil_temp',
-          timestamp: maxOilRow.time,
-          value: maxOilTemp
-        }
+        ctx
       );
     }
   }
@@ -740,21 +752,25 @@ function runFindings(session) {
   if (hasColumn(session, 'coolant_temp')) {
     let maxCoolantTemp = -Infinity;
     let maxCoolantRow = null;
-    for (const row of rows) {
+    let maxCoolantState = null;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       if (isDataValid(row, 'coolant_temp') && row.coolant_temp > maxCoolantTemp) {
         maxCoolantTemp = row.coolant_temp;
         maxCoolantRow = row;
+        maxCoolantState = activeStates[i];
       }
     }
     
     if (maxCoolantRow && maxCoolantTemp > THRESHOLDS.COOLANT_TEMP_WARN) {
+      const ctx = getFullContext(maxCoolantRow, maxCoolantState, {
+        observed: maxCoolantTemp,
+        expected: THRESHOLDS.COOLANT_TEMP_WARN,
+        metric: 'coolant_temp'
+      });
       addFinding('bad', 'COOLANT_TEMP_ELEVATED', 'Coolant temperature elevated',
         `Coolant temperature reached ${maxCoolantTemp.toFixed(0)}°F. Monitor engine cooling.`,
-        {
-          metric: 'coolant_temp',
-          timestamp: maxCoolantRow.time,
-          value: maxCoolantTemp
-        }
+        ctx
       );
     }
   }
